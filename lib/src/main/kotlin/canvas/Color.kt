@@ -3,7 +3,7 @@ package cnedclub.sad.canvas
 import kotlin.math.roundToInt
 
 @JvmInline
-value class ARGB(val argb: Int) {
+value class Color(val argb: Int) {
     val a: Int
         get() = argb shr 24 and 0xff
     val r: Int
@@ -31,31 +31,42 @@ value class ARGB(val argb: Int) {
         ColorComponent.B -> b
     }
 
-    fun lerp(other: ARGB, d: Float) = ARGB(
+    fun lerp(other: Color, d: Float) = Color(
         lerp(this.a, other.a, d).roundToInt(),
         lerp(this.r, other.r, d).roundToInt(),
         lerp(this.g, other.g, d).roundToInt(),
         lerp(this.b, other.b, d).roundToInt()
     )
 
+    fun copy(
+        a: Int = this.a,
+        r: Int = this.r,
+        g: Int = this.g,
+        b: Int = this.b
+    ) = Color(a, r, g, b)
+
     @OptIn(ExperimentalStdlibApi::class)
     override fun toString() = "#" + (if (a == 255) rgb else argb).toHexString(HexFormat.UpperCase)
 
     companion object {
-        val BLACK = ARGB(0, 0, 0)
+        val TRANSPARENT = Color(0, 0, 0, 0)
+        val BLACK = Color(0, 0, 0)
 
         private val regex = Regex("#?([0-9a-fA-F]{1,8})")
 
-        fun tryParse(string: String): ARGB? {
+        fun fromString(string: String) =
+            tryParse(string) ?: throw IllegalArgumentException("Cannot parse color '$this'")
+
+        fun tryParse(string: String): Color? {
             val m = regex.matchEntire(string) ?: return null
             val colorText = m.groupValues[1]
             return when (colorText.length) {
-                1 -> c1(colorText, 0).let { ARGB(it, it, it) }
-                2 -> c2(colorText, 0).let { ARGB(it, it, it) }
-                3 -> ARGB(c1(colorText, 0), c1(colorText, 1), c1(colorText, 2))
-                4 -> ARGB(c1(colorText, 0), c1(colorText, 1), c1(colorText, 2), c1(colorText, 3))
-                6 -> ARGB(c2(colorText, 0), c2(colorText, 2), c2(colorText, 4))
-                8 -> ARGB(c2(colorText, 0), c2(colorText, 2), c2(colorText, 4), c2(colorText, 6))
+                1 -> c1(colorText, 0).let { Color(it, it, it) }
+                2 -> c2(colorText, 0).let { Color(it, it, it) }
+                3 -> Color(c1(colorText, 0), c1(colorText, 1), c1(colorText, 2))
+                4 -> Color(c1(colorText, 0), c1(colorText, 1), c1(colorText, 2), c1(colorText, 3))
+                6 -> Color(c2(colorText, 0), c2(colorText, 2), c2(colorText, 4))
+                8 -> Color(c2(colorText, 0), c2(colorText, 2), c2(colorText, 4), c2(colorText, 6))
                 else -> null
             }
         }

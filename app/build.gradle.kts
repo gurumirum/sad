@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":api"))
+    implementation(project(":lib"))
     implementation(project(":script"))
 
     implementation("com.github.ajalt.clikt:clikt:4.3.0")

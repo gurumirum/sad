@@ -4,14 +4,14 @@ import kotlin.math.max
 import kotlin.math.min
 
 fun blend(
-    src: ARGB,
-    dst: ARGB,
+    src: Color,
+    dst: Color,
     eq: BlendEquation,
     srcColor: BlendFunc,
     dstColor: BlendFunc,
     srcAlpha: BlendFunc,
     dstAlpha: BlendFunc,
-): ARGB = ARGB(
+): Color = Color(
     eq.equate(src, dst, srcAlpha, dstAlpha, ColorComponent.A),
     eq.equate(src, dst, srcColor, dstColor, ColorComponent.R),
     eq.equate(src, dst, srcColor, dstColor, ColorComponent.G),
@@ -25,7 +25,7 @@ enum class BlendEquation {
     Min,
     Max;
 
-    fun equate(src: ARGB, dst: ARGB, srcFunc: BlendFunc, dstFunc: BlendFunc, c: ColorComponent): Int = when (this) {
+    fun equate(src: Color, dst: Color, srcFunc: BlendFunc, dstFunc: BlendFunc, c: ColorComponent): Int = when (this) {
         Add -> (src[c] * srcFunc.factor(src, dst, c) + dst[c] * dstFunc.factor(src, dst, c)).toInt()
         Subtract -> (src[c] * srcFunc.factor(src, dst, c) - dst[c] * dstFunc.factor(src, dst, c)).toInt()
         ReverseSubtract -> (dst[c] * dstFunc.factor(src, dst, c) - src[c] * srcFunc.factor(src, dst, c)).toInt()
@@ -46,7 +46,7 @@ enum class BlendFunc {
     DstAlpha,
     OneMinusDstAlpha;
 
-    fun factor(src: ARGB, dst: ARGB, c: ColorComponent): Float = when (this) {
+    fun factor(src: Color, dst: Color, c: ColorComponent): Float = when (this) {
         Zero -> 0f
         One -> 1f
         SrcColor -> src[c] / 255f

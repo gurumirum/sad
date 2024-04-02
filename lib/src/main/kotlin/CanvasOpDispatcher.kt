@@ -3,6 +3,7 @@ package cnedclub.sad
 import cnedclub.sad.canvas.*
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -18,33 +19,36 @@ class CanvasOpDispatcher {
         defaultHeight: UInt,
         canvasOperations: Map<String, CanvasOp>,
         imageLoader: ImageLoader,
-        operationFailHandle: (path: String, err: String) -> Unit
+        errorHandler: (path: String, err: String) -> Unit
     ) = coroutineScope {
-        dependencyLock.lock()
-        for ((path, op) in canvasOperations) {
-            val ctx = CanvasOp.Context(imageLoader, DependencyHandle(this@CanvasOpDispatcher, path))
-            ops[path] = async {
-                try {
-                    op.run(ctx, Dimension.of(defaultWidth), Dimension.of(defaultHeight)).fold({ it }) {
-                        operationFailHandle(path, it.toCanvasOperationError())
+        dependencyLock.withLock {
+            for ((path, op) in canvasOperations) {
+                val ctx = CanvasOp.Context(imageLoader, DependencyHandle(this@CanvasOpDispatcher, path))
+                ops[path] = async {
+                    try {
+                        op.run(ctx, Dimension.of(defaultWidth), Dimension.of(defaultHeight)).fold({ it }) {
+                            errorHandler(path, it.toCanvasOperationError())
+                            null
+                        }
+                    } catch (ex: Exception) {
+                        errorHandler(path, "Unexpected exception: $ex")
                         null
                     }
-                } catch (ex: Exception) {
-                    operationFailHandle(path, "Unexpected exception: $ex")
-                    null
                 }
             }
         }
-        dependencyLock.unlock()
     }
 
-    suspend fun awaitAll(): Map<String, Canvas?> = ops.map { (k, v) -> k to v.await() }.toMap()
+    suspend fun await(): Map<String, Canvas?> = coroutineScope {
+        awaitAll(*ops.map { (k, v) -> async { k to v.await() } }.toTypedArray()).toMap()
+    }
 
     private suspend fun addDependency(entry: String, dependency: String): Result<Canvas> {
         val op = dependencyLock.withLock {
-            val op = ops[entry] ?: return fail("Invalid dependency: No entry with name '$entry'")
-            if (!ops.containsKey(dependency)) return fail("Invalid dependency: No entry with name '$dependency'")
-            if (checkForDependency(entry, dependency)) {
+            if (!ops.containsKey(entry)) return fail("Invalid dependency: No entry with name '$entry'")
+            val op = ops[dependency] ?: return fail("Invalid dependency: No entry with name '$dependency'")
+            if (entry == dependency) return fail("Entry '$entry' depending on itself")
+            if (checkCycles(entry, dependency)) {
                 return fail("Cyclic dependency detected between entry '$entry' and '$dependency'")
             }
             val e = dependencies.getOrPut(entry) { mutableSetOf() }
@@ -54,9 +58,9 @@ class CanvasOpDispatcher {
         return op.await()?.let { Result.success(it) } ?: fail("One or more dependency failed")
     }
 
-    private fun checkForDependency(entry: String, dependency: String): Boolean {
+    private fun checkCycles(entry: String, dependency: String): Boolean {
         val dep = dependencies[dependency] ?: return false
-        return dep.contains(entry) || dep.any { checkForDependency(entry, it) }
+        return dep.contains(entry) || dep.any { checkCycles(entry, it) }
     }
 
     class DependencyHandle(
@@ -72,10 +76,10 @@ class CanvasOpDispatcher {
             defaultHeight: UInt,
             canvasOperations: Map<String, CanvasOp>,
             imageLoader: ImageLoader,
-            operationFailReport: (path: String, err: String) -> Unit
+            errorHandler: (path: String, err: String) -> Unit
         ): CanvasOpDispatcher = coroutineScope {
             val dispatcher = CanvasOpDispatcher()
-            dispatcher.dispatch(defaultWidth, defaultHeight, canvasOperations, imageLoader, operationFailReport)
+            dispatcher.dispatch(defaultWidth, defaultHeight, canvasOperations, imageLoader, errorHandler)
             dispatcher
         }
     }

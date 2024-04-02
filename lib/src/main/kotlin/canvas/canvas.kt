@@ -7,12 +7,31 @@ interface Canvas {
     val width: UInt
     val height: UInt
 
-    operator fun get(x: UInt, y: UInt): ARGB
+    operator fun get(x: UInt, y: UInt): Color
 
     fun isInBoundary(x: UInt, y: UInt) = x in 0u..<width && y in 0u..<height
 
     fun pixelHash(): Hash
     fun toBufferedImage(): BufferedImage
+}
+
+class SingleColorCanvas(
+    override val width: UInt,
+    override val height: UInt,
+    private val color: Color
+) : Canvas {
+    override fun get(x: UInt, y: UInt): Color = color
+
+    override fun pixelHash() = Hash(createColorArray())
+
+    override fun toBufferedImage() =
+        BufferedImage(this.width.toInt(), this.height.toInt(), BufferedImage.TYPE_INT_ARGB).also {
+            it.setRGB(0, 0, width.toInt(), height.toInt(), createColorArray(), 0, width.toInt())
+        }
+
+    private fun createColorArray() = IntArray((width * height).toInt()) { color.argb }
+
+    override fun toString() = "SingleColorCanvas(width=$width, height=$height, color=$color)"
 }
 
 class MutableCanvas(
@@ -30,9 +49,9 @@ class MutableCanvas(
         else canvas.forEachPixel { x, y -> this[x, y] = canvas[x, y] }
     }
 
-    override operator fun get(x: UInt, y: UInt): ARGB = ARGB(data[(y * width + x).toInt()])
-    operator fun set(x: UInt, y: UInt, argb: ARGB) {
-        data[(y * width + x).toInt()] = argb.argb
+    override operator fun get(x: UInt, y: UInt): Color = Color(data[(y * width + x).toInt()])
+    operator fun set(x: UInt, y: UInt, color: Color) {
+        data[(y * width + x).toInt()] = color.argb
     }
 
     override fun pixelHash() = Hash(this.data)
@@ -42,8 +61,10 @@ class MutableCanvas(
             it.setRGB(0, 0, width.toInt(), height.toInt(), data, 0, width.toInt())
         }
 
+    override fun toString(): String = "MutableCanvas(width=$width, height=$height)"
+
     companion object {
-        inline fun fill(width: UInt, height: UInt, fill: (x: UInt, y: UInt) -> ARGB) =
+        inline fun fill(width: UInt, height: UInt, fill: (x: UInt, y: UInt) -> Color) =
             MutableCanvas(width, height, IntArray((width * height).toInt()) {
                 fill((it % width.toInt()).toUInt(), (it / width.toInt()).toUInt()).argb
             })

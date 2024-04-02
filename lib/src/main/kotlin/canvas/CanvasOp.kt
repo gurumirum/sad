@@ -3,7 +3,7 @@ package cnedclub.sad.canvas
 import cnedclub.sad.CanvasOpDispatcher
 import cnedclub.sad.ImageLoader
 
-sealed interface CanvasOp {
+interface CanvasOp {
     suspend fun run(
         ctx: Context,
         parentWidth: Dimension,

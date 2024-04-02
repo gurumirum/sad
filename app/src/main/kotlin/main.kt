@@ -70,7 +70,7 @@ class Main : CliktCommand(
                 config.defaultWidth, config.defaultHeight, config.canvasOperations,
                 ImageLoader(inputPath) { echo(it) }) { path, err ->
                 echo("Canvas operation $path failed: $err")
-            }.awaitAll().mapNotNull { (path, canvas) ->
+            }.await().mapNotNull { (path, canvas) ->
                 if (canvas == null) null else path to async {
                     val hash = canvas.pixelHash()
                     val prevHash = cache.await()[path]
@@ -90,7 +90,7 @@ class Main : CliktCommand(
     private fun readConfig(configPath: Path): Config? {
         try {
             val file = configPath.toFile()
-            if (file.isFile) return evaluateConfig(file.toScriptSource()) { s, err -> echo(s, err) }
+            if (file.isFile) return evaluateConfig(file.toScriptSource()) { s, err -> echo(s, err = err) }
             echo("Cannot locate config file at '${configPath.toAbsolutePath()}'.")
             return null
         } catch (ex: Exception) {

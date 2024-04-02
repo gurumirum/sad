@@ -41,12 +41,12 @@ fun MutableCanvas.applyGradient(
 
 private fun proportion(min: Float, max: Float, value: Float): Float = (value - min) / (max - min)
 
-private fun ARGB.getGradientMapValue(channels: Set<ColorComponent>): Float {
+private fun Color.getGradientMapValue(channels: Set<ColorComponent>): Float {
     val sum = channels.sumOf { this[it] }
     return sum.toFloat() / (255f * channels.size)
 }
 
-private fun ARGB.replace(other: ARGB, channels: Set<ColorComponent>): ARGB = ARGB(
+private fun Color.replace(other: Color, channels: Set<ColorComponent>): Color = Color(
     (if (ColorComponent.A in channels) other else this).a,
     (if (ColorComponent.R in channels) other else this).r,
     (if (ColorComponent.G in channels) other else this).g,
@@ -58,7 +58,7 @@ interface GradientProvider {
 }
 
 interface Gradient {
-    operator fun get(value: Float): ARGB
+    operator fun get(value: Float): Color
 }
 
 class TextureGradientProvider(
@@ -68,7 +68,7 @@ class TextureGradientProvider(
 ) : GradientProvider {
     override suspend fun run(ctx: CanvasOp.Context): Result<Gradient> {
         return texture.run(ctx, Dimension.AUTO, Dimension.AUTO).mapResult { texture ->
-            val pixels: Array<ARGB> =
+            val pixels: Array<Color> =
                 if (direction.xAxis) Array(texture.width.toInt()) { texture[it.toUInt(), index] }
                 else Array(texture.height.toInt()) { texture[index, it.toUInt()] }
             if (direction.reversed) pixels.reverse()
@@ -91,12 +91,12 @@ enum class GradientDirection(val xAxis: Boolean, val reversed: Boolean) {
 }
 
 class SimpleGradient(
-    private val elements: SortedMap<Float, ARGB>
+    private val elements: SortedMap<Float, Color>
 ) : Gradient, GradientProvider {
-    override fun get(value: Float): ARGB {
+    override fun get(value: Float): Color {
         val head = this.elements.headMap(value).let { if (it.isEmpty()) null else it.lastKey() }
         val tail = this.elements.tailMap(value).let { if (it.isEmpty()) null else it.firstKey() }
-        if (head == null && tail == null) return ARGB.BLACK
+        if (head == null && tail == null) return Color.BLACK
         if (head == null) return this.elements[tail]!!
         if (tail == null) return this.elements[head]!!
         return this.elements[head]!!.lerp(this.elements[tail]!!, (value - head) / (tail - head))

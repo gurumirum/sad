@@ -36,24 +36,29 @@ class LayerOp(
 
         if (errors.isNotEmpty()) {
             fail(
-                "One of the child operations failed:${
+                "One of the child operations failed:\n  ${
                     errors.joinToString(
                         "\n  ",
                         transform = { it.toCanvasOperationError() })
                 }"
             )
+        } else if (entries.isEmpty()) {
+            Result.success(SingleColorCanvas(width, height, Color.TRANSPARENT))
         } else {
             val ret = MutableCanvas(width, height)
+            var first = true
             for ((e, c) in entries.reversed()) {
                 ret.forEachPixel { x, y ->
                     val x0 = (x.toLong() - e.xOffset)
                     val y0 = (y.toLong() - e.yOffset)
                     if (x0 < 0 || y0 < 0 || !c.isInBoundary(x0.toUInt(), y0.toUInt())) return@forEachPixel
-                    ret[x, y] = blend(
-                        c[x0.toUInt(), y0.toUInt()], ret[x, y],
+                    val src = c[x0.toUInt(), y0.toUInt()]
+                    ret[x, y] = if (first) src else blend(
+                        src, ret[x, y],
                         equation, srcColor, dstColor, srcAlpha, dstAlpha
                     )
                 }
+                if (first) first = false
             }
             Result.success(ret)
         }
