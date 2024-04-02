@@ -1,15 +1,20 @@
 package cnedclub.sad
 
-import cnedclub.sad.canvas.*
+import cnedclub.sad.canvas.Canvas
+import cnedclub.sad.canvas.CanvasOp
+import cnedclub.sad.canvas.Dimension
+import cnedclub.sad.canvas.fail
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 class CanvasOpDispatcher {
-    private val ops = mutableMapOf<String, Deferred<Canvas?>>()
+    private val ops = mutableMapOf<String, Deferred<Result<Canvas>>>()
+
+    val operations: Map<String, Deferred<Result<Canvas>>>
+        get() = ops
 
     private val dependencyLock = Mutex()
     private val dependencies = mutableMapOf<String, MutableSet<String>>()
@@ -18,29 +23,20 @@ class CanvasOpDispatcher {
         defaultWidth: UInt,
         defaultHeight: UInt,
         canvasOperations: Map<String, CanvasOp>,
-        imageLoader: ImageLoader,
-        errorHandler: (path: String, err: String) -> Unit
+        imageLoader: ImageLoader
     ) = coroutineScope {
         dependencyLock.withLock {
             for ((path, op) in canvasOperations) {
                 val ctx = CanvasOp.Context(imageLoader, DependencyHandle(this@CanvasOpDispatcher, path))
                 ops[path] = async {
                     try {
-                        op.run(ctx, Dimension.of(defaultWidth), Dimension.of(defaultHeight)).fold({ it }) {
-                            errorHandler(path, it.toCanvasOperationError())
-                            null
-                        }
+                        op.run(ctx, Dimension.of(defaultWidth), Dimension.of(defaultHeight))
                     } catch (ex: Exception) {
-                        errorHandler(path, "Unexpected exception: $ex")
-                        null
+                        fail("Unexpected exception: $ex")
                     }
                 }
             }
         }
-    }
-
-    suspend fun await(): Map<String, Canvas?> = coroutineScope {
-        awaitAll(*ops.map { (k, v) -> async { k to v.await() } }.toTypedArray()).toMap()
     }
 
     private suspend fun addDependency(entry: String, dependency: String): Result<Canvas> {
@@ -55,7 +51,7 @@ class CanvasOpDispatcher {
             e.add(dependency)
             op
         }
-        return op.await()?.let { Result.success(it) } ?: fail("One or more dependency failed")
+        return op.await().fold({ Result.success(it) }) { fail("One or more dependency failed") }
     }
 
     private fun checkCycles(entry: String, dependency: String): Boolean {
@@ -76,10 +72,9 @@ class CanvasOpDispatcher {
             defaultHeight: UInt,
             canvasOperations: Map<String, CanvasOp>,
             imageLoader: ImageLoader,
-            errorHandler: (path: String, err: String) -> Unit
         ): CanvasOpDispatcher = coroutineScope {
             val dispatcher = CanvasOpDispatcher()
-            dispatcher.dispatch(defaultWidth, defaultHeight, canvasOperations, imageLoader, errorHandler)
+            dispatcher.dispatch(defaultWidth, defaultHeight, canvasOperations, imageLoader)
             dispatcher
         }
     }

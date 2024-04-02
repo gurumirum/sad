@@ -4,27 +4,24 @@ import cnedclub.sad.CanvasOpDispatcher
 import cnedclub.sad.Hash
 import cnedclub.sad.ImageLoader
 import cnedclub.sad.VERSION
-import cnedclub.sad.canvas.Canvas
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.path
-import com.googlecode.pngtastic.core.PngImage
-import com.googlecode.pngtastic.core.PngOptimizer
+import com.github.ajalt.mordant.terminal.Terminal
 import kotlinx.coroutines.*
-import java.io.IOException
-import java.io.PipedInputStream
-import java.io.PipedOutputStream
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
-import java.util.concurrent.Executors
-import javax.imageio.ImageIO
-import kotlin.io.path.*
+import kotlin.io.path.Path
+import kotlin.io.path.bufferedReader
 import kotlin.script.experimental.host.toScriptSource
 import kotlin.system.exitProcess
 import kotlin.time.measureTime
 
-fun main(args: Array<String>) = Main().main(args)
+fun main(args: Array<String>) = Main().context {
+    terminal = Terminal(interactive = true)
+}.main(args)
 
 class Main : CliktCommand(
     help = "idk man"
@@ -64,26 +61,51 @@ class Main : CliktCommand(
 
         echo("Processing ${config.canvasOperations.size} operations")
 
-        val saveResult: SaveResult
+        val tracker = OpTracker(config.canvasOperations.keys)
+        val updater = tracker.startUpdate(this, currentContext.terminal)
+        val saveHandler = SaveHandler(tracker, 2)
+
+        var opsFinished = 0
+        var filesWritten = 0
+
         val time = measureTime {
-            val ops = CanvasOpDispatcher.create(
+            val ops: Map<String, Deferred<Result<Hash>>> = CanvasOpDispatcher.create(
                 config.defaultWidth, config.defaultHeight, config.canvasOperations,
-                ImageLoader(inputPath) { echo(it) }) { path, err ->
-                echo("Canvas operation $path failed: $err")
-            }.await().mapNotNull { (path, canvas) ->
-                if (canvas == null) null else path to async {
-                    val hash = canvas.pixelHash()
-                    val prevHash = cache.await()[path]
-                    if (hash == prevHash) hash to false
-                    else if (saveImage(outputPath, path, canvas)) hash to true
-                    else null
+                ImageLoader(inputPath) {
+                    tracker.addGenericReport("Failed to load image file: $it", true)
+                }
+            ).operations.mapValues { (path, canvasAsync) ->
+                async {
+                    canvasAsync.await().fold({ canvas ->
+                        val hash = canvas.pixelHash()
+                        val prevHash = cache.await()[path]
+                        if (hash == prevHash) {
+                            tracker.updateStatus(path, OpTracker.Stage.SKIPPED)
+                            opsFinished++
+                            Result.success(hash)
+                        } else if (saveHandler.saveImage(path, canvas, outputPath)) {
+                            tracker.updateStatus(path, OpTracker.Stage.FINISHED)
+                            opsFinished++
+                            filesWritten++
+                            Result.success(hash)
+                        } else {
+                            Result.failure(RuntimeException("Failed to save"))
+                        }
+                    }, {
+                        tracker.updateStatus(path, OpTracker.Stage.PROCESSING_FAILED)
+                        tracker.addReport(path, "Image processing failed: $it", true)
+                        Result.failure(it)
+                    })
                 }
             }.toMap()
 
-            saveResult = save(cache.await(), ops, cachePath, outputPath)
+            saveHandler.updateCache(cache.await(), ops, cachePath, outputPath, noOutputCache)
         }
 
-        echo("${saveResult.opsFinished} operations finished (${saveResult.filesSaved} files written) in $time")
+        updater.stop()
+        tracker.printReports(currentContext.terminal)
+
+        echo("\n\n${opsFinished} operation(s) finished (${filesWritten} file(s) written) in $time")
         exitProcess(0)
     }
 
@@ -117,87 +139,7 @@ class Main : CliktCommand(
         }
     }
 
-    private suspend fun save(
-        cache: Map<String, Hash>,
-        ops: Map<String, Deferred<Pair<Hash, Boolean>?>>,
-        cachePath: Path,
-        outputPath: Path
-    ): SaveResult {
-        var opsFinished = 0
-        var filesSaved = 0
-
-        val filesToDelete = HashSet(cache.keys)
-        if (noOutputCache) {
-            for ((path, op) in ops.entries) {
-                op.await()?.let { (_, saved) ->
-                    opsFinished++
-                    if (saved) filesSaved++
-                    filesToDelete.remove(path)
-                }
-            }
-        } else {
-            cachePath.createParentDirectories()
-            cachePath.bufferedWriter().use { w ->
-                var nl = false
-                for ((path, op) in ops) {
-                    val (hash, saved) = op.await() ?: continue
-                    if (nl) w.write("\n")
-                    else nl = true
-                    w.write(hash.toString())
-                    w.write(" ")
-                    w.write(path)
-                    opsFinished++
-                    if (saved) filesSaved++
-                    filesToDelete.remove(path)
-                }
-            }
-            echo("Wrote $opsFinished entries to .cache file")
-        }
-        for (f in filesToDelete) {
-            try {
-                outputPath.resolve("$f.png").deleteIfExists()
-            } catch (ex: IOException) {
-                echo("Cannot delete outdated output entry $f due to an exception: $ex", err = true)
-            }
-        }
-        return SaveResult(opsFinished, filesSaved)
-    }
-
-    private data class SaveResult(val opsFinished: Int, val filesSaved: Int)
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private suspend fun saveImage(outputPath: Path, path: String, canvas: Canvas): Boolean = try {
-        val image = canvas.toBufferedImage()
-        val png = PipedInputStream().use { inputStream ->
-            coroutineScope {
-                launch(imageWriterDispatcher) {
-                    ImageIO.write(image, "png", PipedOutputStream(inputStream))
-                }
-                withContext(Dispatchers.Default.limitedParallelism(1)) {
-                    optimizer.optimize(PngImage(inputStream))
-                }
-            }
-        }
-
-        withContext(Dispatchers.IO) {
-            val outPath = outputPath.resolve("$path.png")
-            outPath.createParentDirectories()
-            outPath.outputStream().buffered().use { png.writeDataOutputStream(it) }
-        }
-
-        true
-    } catch (ex: IOException) {
-        echo("Cannot write output to $path: $ex")
-        false
-    }
-
     companion object {
         private val cachePattern = Regex("([0-9a-f]{64}) (.+)")
-        private val imageWriterDispatcher = Executors.newFixedThreadPool(1).asCoroutineDispatcher()
-        private val optimizer by lazy {
-            PngOptimizer().apply {
-                setCompressor("zopfli", null)
-            }
-        }
     }
 }

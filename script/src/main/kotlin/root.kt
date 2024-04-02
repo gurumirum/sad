@@ -138,6 +138,14 @@ class ConfigScriptRoot(
         builder(SimpleGradientBuilder(it))
     })
 
+    inline fun transform(
+        target: CanvasOp,
+        outOfBoundsFill: Color = Color.TRANSPARENT,
+        width: Int? = null,
+        height: Int? = null,
+        transform: MutableTransform.() -> Unit
+    ) = TransformOp(target, width.dim(), height.dim(), Transform.identity().also(transform), outOfBoundsFill)
+
     fun rgb(rgb: Int) = Color((rgb.toLong() or 0xFF000000).toInt())
     fun rgb(r: Int, g: Int, b: Int) = Color(r, g, b)
     fun argb(argb: Long) = Color(argb.toInt())
