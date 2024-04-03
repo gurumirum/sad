@@ -31,10 +31,17 @@ class TransformOp(
             }
 
             Result.success(MutableCanvas.fill(width, height) { x, y ->
-                inverse.transform(x.toFloat() + .5f, y.toFloat() + .5f) { x2, y2 ->
-                    val px = min(canvas.width - 1u, x2.toUInt())
-                    val py = min(canvas.height - 1u, y2.toUInt())
-                    if (canvas.isInBoundary(px, py)) canvas[px, py] else outOfBoundsFill
+                inverse.transform(
+                    x.toFloat() - width.toFloat() / 2f + .5f,
+                    y.toFloat() - height.toFloat() / 2f + .5f
+                ) { x2, y2 ->
+                    val canvasX = x2 + canvas.width.toFloat() / 2f
+                    val canvasY = y2 + canvas.height.toFloat() / 2f
+                    if (canvasX < 0 || canvasY < 0) outOfBoundsFill else {
+                        val px = canvasX.toUInt()
+                        val py = canvasY.toUInt()
+                        if (canvas.isInBoundary(px, py)) canvas[px, py] else outOfBoundsFill
+                    }
                 }
             })
         }

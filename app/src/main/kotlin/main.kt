@@ -28,16 +28,16 @@ class Main : CliktCommand(
 ) {
     private val input: Path? by option().path(mustExist = true, canBeFile = false, mustBeReadable = true)
     private val output: Path? by option().path(canBeFile = false)
-    private val configPath: Path? by option().path(mustExist = true, canBeDir = false, mustBeReadable = true)
-    private val cachePath: Path? by option().path(mustExist = false, canBeDir = false)
+    private val config: Path? by option().path(mustExist = true, canBeDir = false, mustBeReadable = true)
+    private val cache: Path? by option().path(mustExist = false, canBeDir = false)
     private val ignoreCache: Boolean by option("--ignore-cache").flag("--use-cache", default = false)
     private val noOutputCache: Boolean by option("--no-output-cache").flag("--output-cache", default = false)
 
     override fun run(): Unit = runBlocking {
         val inputPath = input ?: Path("")
         val outputPath = output ?: inputPath.resolve("out")
-        val configPath = configPath ?: inputPath.resolve("config.sad.kts")
-        val cachePath = cachePath ?: outputPath.resolve(".cache")
+        val configPath = config ?: inputPath.resolve("config.sad.kts")
+        val cachePath = cache ?: outputPath.resolve(".cache")
 
         echo("SAD Version $VERSION")
         echo("INPUT: ${inputPath.toAbsolutePath()}")
@@ -69,7 +69,7 @@ class Main : CliktCommand(
         var filesWritten = 0
 
         val time = measureTime {
-            val ops: Map<String, Deferred<Result<Hash>>> = CanvasOpDispatcher.create(
+            val ops: Map<String, Deferred<Result<Lazy<Hash>>>> = CanvasOpDispatcher.create(
                 config.defaultWidth, config.defaultHeight, config.canvasOperations,
                 ImageLoader(inputPath) {
                     tracker.addGenericReport("Failed to load image file: $it", true)
@@ -77,9 +77,8 @@ class Main : CliktCommand(
             ).operations.mapValues { (path, canvasAsync) ->
                 async {
                     canvasAsync.await().fold({ canvas ->
-                        val hash = canvas.pixelHash()
-                        val prevHash = cache.await()[path]
-                        if (hash == prevHash) {
+                        val hash = lazy { canvas.pixelHash() }
+                        if (!isChanged(path, hash, cache)) {
                             tracker.updateStatus(path, OpTracker.Stage.SKIPPED)
                             opsFinished++
                             Result.success(hash)
@@ -121,8 +120,11 @@ class Main : CliktCommand(
         }
     }
 
+    private suspend fun isChanged(path: String, canvasHash: Lazy<Hash>, cache: Deferred<Map<String, Hash>>): Boolean =
+        ignoreCache || canvasHash.value != cache.await()[path]
+
     private suspend fun readCache(cachePath: Path): Map<String, Hash> = withContext(Dispatchers.IO) {
-        if (ignoreCache) emptyMap() else try {
+        try {
             cachePath.bufferedReader().useLines {
                 val map = hashMapOf<String, Hash>()
                 for ((i, line) in it.withIndex()) {

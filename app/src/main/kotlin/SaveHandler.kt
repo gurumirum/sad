@@ -62,7 +62,7 @@ class SaveHandler(
 
     suspend fun updateCache(
         cache: Map<String, Hash>,
-        ops: Map<String, Deferred<Result<Hash>>>,
+        ops: Map<String, Deferred<Result<Lazy<Hash>>>>,
         cachePath: Path,
         outputPath: Path,
         noOutputCache: Boolean
@@ -78,7 +78,7 @@ class SaveHandler(
                 op.await().onSuccess {
                     if (nl) w.write("\n")
                     else nl = true
-                    w.write(it.toString())
+                    w.write(it.value.toString())
                     w.write(" ")
                     w.write(path)
                     filesToDelete.remove(path)

@@ -39,7 +39,8 @@ fun MutableCanvas.applyGradient(
     }
 }
 
-private fun proportion(min: Float, max: Float, value: Float): Float = (value - min) / (max - min)
+private fun proportion(min: Float, max: Float, value: Float): Float =
+    if (max == min) value else (value - min) / (max - min)
 
 private fun Color.getGradientMapValue(channels: Set<ColorComponent>): Float {
     val sum = channels.sumOf { this[it] }

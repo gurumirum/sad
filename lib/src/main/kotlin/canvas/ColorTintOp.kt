@@ -1,6 +1,6 @@
 package cnedclub.sad.canvas
 
-class TintOp(
+class ColorTintOp(
     private val target: CanvasOp,
     private val color: Color
 ) : CanvasOp {
@@ -21,5 +21,5 @@ class TintOp(
         a.b * b.b / 255,
     )
 
-    override fun toString() = "TintOp(target=$target, color=$color)"
+    override fun toString() = "ColorTintOp(target=$target, color=$color)"
 }

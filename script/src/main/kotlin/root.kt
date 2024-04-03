@@ -19,21 +19,14 @@ class ConfigScriptRoot(
             field = value
         }
 
-    fun generate(path: String, canvasOp: CanvasOp): DependencyOp {
-        validatePath(path)
-        if (canvasOperations.putIfAbsent(path, canvasOp) != null) {
-            throw IllegalStateException("Entry for location '$path' already exists")
-        }
-        return DependencyOp(path)
-    }
+    fun generate(path: String, canvasOp: CanvasOp) =
+        if (canvasOperations.putIfAbsent(path, canvasOp) == null) DependencyOp(path)
+        else throw IllegalStateException("Entry for location '$path' already exists")
 
-    fun image(path: String): RawImageOp {
-        validatePath(path)
-        return RawImageOp(path)
-    }
+    fun image(path: String) = RawImageOp(path)
 
     fun fill(color: Color, width: Int? = null, height: Int? = null) =
-        ColorRectOp(color, width.dim(), height.dim())
+        ColorFillOp(color, width.dim(), height.dim())
 
     fun output(path: String) = DependencyOp(path)
 
@@ -45,7 +38,7 @@ class ConfigScriptRoot(
         height: Int? = null
     ) = RegionOp(source, xOffset.toUIntChecked(), yOffset.toUIntChecked(), width.dim(), height.dim())
 
-    fun tint(target: CanvasOp, color: Color) = TintOp(target, color)
+    fun tint(target: CanvasOp, color: Color) = ColorTintOp(target, color)
 
     fun layer(
         vararg entries: CanvasOp,
@@ -164,7 +157,7 @@ class LayerBuilder(private val entries: MutableList<LayerOp.Entry>) {
 @Suppress("unused", "MemberVisibilityCanBePrivate")
 class SimpleGradientBuilder(private val elements: SortedMap<Float, Color>) {
     fun add(point: Float, color: Color) {
-        if (point >= 0 && point < 1) {
+        if (point in 0.0..1.0) {
             if (elements.containsKey(point)) throw IllegalStateException("Duplicated gradient point at value $point")
             elements[point] = color
         } else throw IllegalArgumentException("Invalid point value $point, must be in range of 0 ~ 1")
@@ -194,20 +187,6 @@ private fun EnumSet<ColorComponent>.addComponent(
 ) {
     if (!this.add(c)) reportHandle("Duplicated color component '$ch'", false)
 }
-
-private fun validatePath(location: String) {
-    if (!isValidLocation(location)) throw IllegalArgumentException("'$location' is not a valid location")
-}
-
-private fun isValidLocation(location: String): Boolean {
-    for (c in location) {
-        if (!isValidPathChar(c)) return false
-    }
-    return true
-}
-
-private fun isValidPathChar(c: Char): Boolean =
-    c == '_' || c == '-' || c in 'a'..'z' || c in '0'..'9' || c == '/' || c == '.'
 
 @Suppress("NOTHING_TO_INLINE")
 private inline fun Int.toUIntChecked(): UInt =

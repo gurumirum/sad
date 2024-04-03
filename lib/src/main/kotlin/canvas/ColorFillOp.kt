@@ -1,6 +1,6 @@
 package cnedclub.sad.canvas
 
-class ColorRectOp(
+class ColorFillOp(
     private val fill: Color,
     private val width: Dimension,
     private val height: Dimension,
@@ -15,5 +15,5 @@ class ColorRectOp(
         return Result.success(SingleColorCanvas(width, height, fill))
     }
 
-    override fun toString() = "ColorRectOp(fill=$fill, width=$width, height=$height)"
+    override fun toString() = "ColorFillOp(fill=$fill, width=$width, height=$height)"
 }
