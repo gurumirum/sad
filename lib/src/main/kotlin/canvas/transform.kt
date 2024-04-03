@@ -124,15 +124,9 @@ data class MutableTransform(
     )
 
     fun append(
-        m00: Float,
-        m01: Float,
-        m02: Float,
-        m10: Float,
-        m11: Float,
-        m12: Float,
-        m20: Float,
-        m21: Float,
-        m22: Float
+        m00: Float, m01: Float, m02: Float,
+        m10: Float, m11: Float, m12: Float,
+        m20: Float, m21: Float, m22: Float
     ) {
         val r00 = m00 * this.m00 + m01 * this.m10 + m02 * this.m20
         val r01 = m00 * this.m01 + m01 * this.m11 + m02 * this.m21

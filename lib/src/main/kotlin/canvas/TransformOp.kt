@@ -3,7 +3,6 @@ package cnedclub.sad.canvas
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
-import kotlin.math.min
 
 class TransformOp(
     private val target: CanvasOp,
