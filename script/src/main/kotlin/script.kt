@@ -18,6 +18,7 @@ object ConfigScriptCompilationConfig : ScriptCompilationConfiguration({
     defaultImports("cnedclub.sad.canvas.BlendFunc.*")
     defaultImports("cnedclub.sad.canvas.GradientDirection.*")
     defaultImports("cnedclub.sad.script.OptimizationType.*")
+    defaultImports("cnedclub.sad.canvas.TransformOp.OutOfBoundsFill")
 
     implicitReceivers(ConfigScriptRoot::class)
 

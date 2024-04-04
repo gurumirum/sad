@@ -135,7 +135,7 @@ class ConfigScriptRoot(
 
     inline fun transform(
         target: CanvasOp,
-        outOfBoundsFill: OutOfBoundsFill = transparentFill,
+        outOfBoundsFill: TransformOp.OutOfBoundsFill = transparentFill,
         width: Int? = null,
         height: Int? = null,
         transform: MutableTransform.() -> Unit
@@ -201,4 +201,4 @@ internal fun Int.dim() = Dimension.of(this.toUIntChecked())
 internal fun Int?.dim() = this?.dim() ?: Dimension.AUTO
 
 @PublishedApi
-internal val transparentFill = OutOfBoundsFill.Fill(Color.Transparent)
+internal val transparentFill = TransformOp.OutOfBoundsFill.Fill(Color.Transparent)

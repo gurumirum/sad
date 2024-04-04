@@ -95,10 +95,10 @@ class TransformOp(
 
     override fun toString() =
         "TransformOp(target=$target, width=$width, height=$height, transform=$transform, outOfBoundsFill=$outOfBoundsFill)"
-}
 
-sealed interface OutOfBoundsFill {
-    data object Clamp : OutOfBoundsFill
-    data object Repeat : OutOfBoundsFill
-    data class Fill(val color: Color) : OutOfBoundsFill
+    sealed interface OutOfBoundsFill {
+        data object Clamp : OutOfBoundsFill
+        data object Repeat : OutOfBoundsFill
+        data class Fill(val color: Color) : OutOfBoundsFill
+    }
 }
