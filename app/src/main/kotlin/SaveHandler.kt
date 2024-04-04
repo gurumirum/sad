@@ -33,15 +33,14 @@ class SaveHandler(private val tracker: OpTracker) : Closeable {
         SynchronousQueue()
     ).asCoroutineDispatcher()
 
-    suspend fun saveImage(path: String, canvas: Canvas, outputPath: Path, optimizationType: OptimizationType): Boolean {
-        return when (optimizationType) {
-            OptimizationType.Default -> optimizeAndSave(canvas, false, path, outputPath)
+    suspend fun saveImage(path: String, canvas: Canvas, outputPath: Path, optimizationType: OptimizationType): Boolean =
+        when (optimizationType) {
+            OptimizationType.DefaultOptimization -> optimizeAndSave(canvas, false, path, outputPath)
+            OptimizationType.ZopfliOptimization -> optimizeAndSave(canvas, true, path, outputPath)
             OptimizationType.NoOptimization -> write(path, outputPath) {
                 ImageIO.write(canvas.toBufferedImage(), "png", it)
             }
-            OptimizationType.Zopfli -> optimizeAndSave(canvas, true, path, outputPath)
         }
-    }
 
     private suspend fun optimizeAndSave(canvas: Canvas, zopfli: Boolean, path: String, outputPath: Path): Boolean {
         tracker.updateStatus(path, OpTracker.Stage.COMPRESSING)

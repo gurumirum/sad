@@ -6,9 +6,3 @@ data class ImageGenEntry(
     val operation: CanvasOp,
     val optimizationType: OptimizationType
 )
-
-enum class OptimizationType {
-    Default,
-    NoOptimization,
-    Zopfli
-}

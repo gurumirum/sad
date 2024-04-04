@@ -17,6 +17,7 @@ object ConfigScriptCompilationConfig : ScriptCompilationConfiguration({
     defaultImports("cnedclub.sad.canvas.BlendEquation.*")
     defaultImports("cnedclub.sad.canvas.BlendFunc.*")
     defaultImports("cnedclub.sad.canvas.GradientDirection.*")
+    defaultImports("cnedclub.sad.script.OptimizationType.*")
 
     implicitReceivers(ConfigScriptRoot::class)
 

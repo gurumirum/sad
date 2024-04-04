@@ -19,7 +19,7 @@ class ConfigScriptRoot(
             field = value
         }
 
-    var defaultOptimizationType = OptimizationType.Default
+    var defaultOptimizationType = OptimizationType.DefaultOptimization
 
     fun generate(path: String, canvasOp: CanvasOp, optimization: OptimizationType = defaultOptimizationType) =
         if (canvasOperations.putIfAbsent(path, ImageGenEntry(canvasOp, optimization)) == null) DependencyOp(path)
