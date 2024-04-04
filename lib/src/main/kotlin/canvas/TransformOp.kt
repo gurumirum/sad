@@ -9,7 +9,7 @@ class TransformOp(
     private val width: Dimension,
     private val height: Dimension,
     private val transform: Transform,
-    private val outOfBoundsFill: Color
+    private val outOfBoundsFill: OutOfBoundsFill
 ) : CanvasOp {
     override suspend fun run(ctx: CanvasOp.Context, parentWidth: Dimension, parentHeight: Dimension): Result<Canvas> {
         val inverse: Transform = transform.inverse() ?: return fail("Invalid transform matrix $transform")
@@ -36,10 +36,21 @@ class TransformOp(
                 ) { x2, y2 ->
                     val canvasX = x2 + canvas.width.toFloat() / 2f
                     val canvasY = y2 + canvas.height.toFloat() / 2f
-                    if (canvasX < 0 || canvasY < 0) outOfBoundsFill else {
+                    if (canvasX >= 0 && canvasY >= 0) {
                         val px = canvasX.toUInt()
                         val py = canvasY.toUInt()
-                        if (canvas.isInBoundary(px, py)) canvas[px, py] else outOfBoundsFill
+                        if (canvas.isInBoundary(px, py)) return@transform canvas[px, py]
+                    }
+                    return@transform when (outOfBoundsFill) {
+                        OutOfBoundsFill.Clamp -> canvas[
+                            if (canvasX < 0f) 0u else canvas.width - 1u,
+                            if (canvasY < 0f) 0u else canvas.height - 1u
+                        ]
+                        OutOfBoundsFill.Repeat -> canvas[
+                            canvasX.wrap(canvas.width - 1u),
+                            canvasY.wrap(canvas.height - 1u)
+                        ]
+                        is OutOfBoundsFill.Fill -> outOfBoundsFill.color
                     }
                 }
             })
@@ -71,5 +82,22 @@ class TransformOp(
         action(((xMax - xMin) / 2f).toUInt(), ((yMax - yMin) / 2f).toUInt())
     }
 
+    private fun Float.wrap(maxValue: UInt): UInt =
+        if (this < 0) {
+            var ret = this
+            while (ret < 0) ret += maxValue.toFloat()
+            ret.toUInt()
+        } else {
+            var ret = this.toUInt()
+            while (ret > maxValue) ret -= maxValue + 1u
+            ret
+        }
+
     override fun toString() = "TransformOp(target=$target, width=$width, height=$height, transform=$transform)"
+}
+
+sealed interface OutOfBoundsFill {
+    data object Clamp : OutOfBoundsFill
+    data object Repeat : OutOfBoundsFill
+    data class Fill(val color: Color) : OutOfBoundsFill
 }
