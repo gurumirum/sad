@@ -42,8 +42,7 @@ class Main : CliktCommand(
         echo("INPUT: ${inputPath.toAbsolutePath()}")
         echo("OUTPUT: ${outputPath.toAbsolutePath()}")
         echo("CONFIG: ${configPath.toAbsolutePath()}")
-        if (!ignoreCache)
-            echo("CACHE: ${cachePath.toAbsolutePath()}")
+        echo("CACHE: ${cachePath.toAbsolutePath()}")
         if (ignoreCache || noOutputCache)
             echo(buildString {
                 append("Flags: ")
