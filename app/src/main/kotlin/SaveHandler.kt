@@ -14,7 +14,7 @@ import java.io.ByteArrayOutputStream
 import java.io.Closeable
 import java.io.IOException
 import java.nio.file.Path
-import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import javax.imageio.ImageIO
@@ -30,7 +30,7 @@ class SaveHandler(private val tracker: OpTracker) : Closeable {
     private val optimizerContext = ThreadPoolExecutor(
         0, MAX_PARALLEL,
         60L, TimeUnit.SECONDS,
-        SynchronousQueue()
+        LinkedBlockingQueue()
     ).asCoroutineDispatcher()
 
     suspend fun saveImage(path: String, canvas: Canvas, outputPath: Path, optimizationType: OptimizationType): Boolean =
