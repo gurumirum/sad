@@ -3,6 +3,7 @@ package cnedclub.sad.canvas
 import kotlin.math.roundToInt
 
 @JvmInline
+@Suppress("unused")
 value class Color(val argb: Int) {
     val a: Int
         get() = argb shr 24 and 0xff
