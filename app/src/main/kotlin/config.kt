@@ -1,9 +1,9 @@
 package cnedclub.sad.app
 
-import cnedclub.sad.canvas.CanvasOp
 import cnedclub.sad.script.ConfigScript
 import cnedclub.sad.script.ConfigScriptEvalConfig
 import cnedclub.sad.script.ConfigScriptRoot
+import cnedclub.sad.script.ImageGenEntry
 import kotlin.script.experimental.api.ScriptDiagnostic
 import kotlin.script.experimental.api.SourceCode
 import kotlin.script.experimental.jvm.util.isError
@@ -13,13 +13,13 @@ import kotlin.script.experimental.jvmhost.createJvmCompilationConfigurationFromT
 class Config(
     val defaultWidth: UInt,
     val defaultHeight: UInt,
-    val canvasOperations: Map<String, CanvasOp>
+    val canvasOperations: Map<String, ImageGenEntry>
 )
 
 fun evaluateConfig(src: SourceCode, reportHandle: (String, err: Boolean) -> Unit): Config {
     val compilationConfiguration = createJvmCompilationConfigurationFromTemplate<ConfigScript>()
 
-    val canvasOperations = mutableMapOf<String, CanvasOp>()
+    val canvasOperations = mutableMapOf<String, ImageGenEntry>()
     val root = ConfigScriptRoot(canvasOperations, reportHandle)
     val result = BasicJvmScriptingHost().eval(src, compilationConfiguration, ConfigScriptEvalConfig(root))
 

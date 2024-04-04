@@ -1,6 +1,5 @@
 package cnedclub.sad.canvas
 
-import cnedclub.sad.CanvasOpDispatcher
 import cnedclub.sad.ImageLoader
 
 interface CanvasOp {
@@ -12,6 +11,10 @@ interface CanvasOp {
 
     data class Context(
         val imageLoader: ImageLoader,
-        val dependencyHandle: CanvasOpDispatcher.DependencyHandle
+        val dependencyHandle: DependencyHandle
     )
+
+    interface DependencyHandle {
+        suspend fun dependOn(entry: String): Result<Canvas>
+    }
 }

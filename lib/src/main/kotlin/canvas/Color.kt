@@ -49,9 +49,9 @@ value class Color(val argb: Int) {
     override fun toString() = "#" + (if (a == 255) rgb else argb).toHexString(HexFormat.UpperCase)
 
     companion object {
-        val TRANSPARENT = Color(0, 0, 0, 0)
-        val BLACK = Color(0, 0, 0)
-        val WHITE = Color(1, 1, 1)
+        val Transparent = Color(0, 0, 0, 0)
+        val Black = Color(0, 0, 0)
+        val White = Color(1, 1, 1)
 
         private val regex = Regex("#?([0-9a-fA-F]{1,8})")
 

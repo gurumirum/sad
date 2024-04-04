@@ -1,6 +1,5 @@
 package cnedclub.sad.app
 
-import cnedclub.sad.CanvasOpDispatcher
 import cnedclub.sad.Hash
 import cnedclub.sad.ImageLoader
 import cnedclub.sad.VERSION
@@ -63,7 +62,7 @@ class Main : CliktCommand(
 
         val tracker = OpTracker(config.canvasOperations.keys)
         val updater = tracker.startUpdate(this, currentContext.terminal)
-        val saveHandler = SaveHandler(tracker, 2)
+        val saveHandler = SaveHandler(tracker)
 
         var opsFinished = 0
         var filesWritten = 0
@@ -74,15 +73,15 @@ class Main : CliktCommand(
                 ImageLoader(inputPath) {
                     tracker.addGenericReport("Failed to load image file: $it", true)
                 }
-            ).operations.mapValues { (path, canvasAsync) ->
+            ).operations.mapValues { (path, entry) ->
                 async {
-                    canvasAsync.await().fold({ canvas ->
+                    entry.canvasOp.await().fold({ canvas ->
                         val hash = lazy { canvas.pixelHash() }
                         if (!isChanged(path, hash, cache)) {
                             tracker.updateStatus(path, OpTracker.Stage.SKIPPED)
                             opsFinished++
                             Result.success(hash)
-                        } else if (saveHandler.saveImage(path, canvas, outputPath)) {
+                        } else if (saveHandler.saveImage(path, canvas, outputPath, entry.optimizationType)) {
                             tracker.updateStatus(path, OpTracker.Stage.FINISHED)
                             opsFinished++
                             filesWritten++

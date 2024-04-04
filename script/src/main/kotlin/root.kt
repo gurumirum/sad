@@ -5,7 +5,7 @@ import java.util.*
 
 @Suppress("unused", "MemberVisibilityCanBePrivate")
 class ConfigScriptRoot(
-    private val canvasOperations: MutableMap<String, CanvasOp>,
+    private val canvasOperations: MutableMap<String, ImageGenEntry>,
     private val reportHandle: (String, err: Boolean) -> Unit
 ) {
     var defaultWidth: Int? = null
@@ -19,8 +19,10 @@ class ConfigScriptRoot(
             field = value
         }
 
-    fun generate(path: String, canvasOp: CanvasOp) =
-        if (canvasOperations.putIfAbsent(path, canvasOp) == null) DependencyOp(path)
+    var defaultOptimizationType = OptimizationType.Default
+
+    fun generate(path: String, canvasOp: CanvasOp, optimization: OptimizationType = defaultOptimizationType) =
+        if (canvasOperations.putIfAbsent(path, ImageGenEntry(canvasOp, optimization)) == null) DependencyOp(path)
         else throw IllegalStateException("Entry for location '$path' already exists")
 
     fun image(path: String) = RawImageOp(path)
@@ -199,4 +201,4 @@ internal fun Int.dim() = Dimension.of(this.toUIntChecked())
 internal fun Int?.dim() = this?.dim() ?: Dimension.AUTO
 
 @PublishedApi
-internal val transparentFill = OutOfBoundsFill.Fill(Color.TRANSPARENT)
+internal val transparentFill = OutOfBoundsFill.Fill(Color.Transparent)

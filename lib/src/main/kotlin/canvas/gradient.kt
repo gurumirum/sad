@@ -97,7 +97,7 @@ class SimpleGradient(
     override fun get(value: Float): Color {
         val head = this.elements.headMap(value).let { if (it.isEmpty()) null else it.lastKey() }
         val tail = this.elements.tailMap(value).let { if (it.isEmpty()) null else it.firstKey() }
-        if (head == null && tail == null) return Color.BLACK
+        if (head == null && tail == null) return Color.Black
         if (head == null) return this.elements[tail]!!
         if (tail == null) return this.elements[head]!!
         return this.elements[head]!!.lerp(this.elements[tail]!!, (value - head) / (tail - head))

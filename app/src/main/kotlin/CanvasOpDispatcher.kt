@@ -1,9 +1,12 @@
-package cnedclub.sad
+package cnedclub.sad.app
 
+import cnedclub.sad.ImageLoader
 import cnedclub.sad.canvas.Canvas
 import cnedclub.sad.canvas.CanvasOp
 import cnedclub.sad.canvas.Dimension
 import cnedclub.sad.canvas.fail
+import cnedclub.sad.script.ImageGenEntry
+import cnedclub.sad.script.OptimizationType
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -11,9 +14,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 class CanvasOpDispatcher {
-    private val ops = mutableMapOf<String, Deferred<Result<Canvas>>>()
+    private val ops = mutableMapOf<String, Entry>()
 
-    val operations: Map<String, Deferred<Result<Canvas>>>
+    val operations: Map<String, Entry>
         get() = ops
 
     private val dependencyLock = Mutex()
@@ -22,19 +25,19 @@ class CanvasOpDispatcher {
     suspend fun dispatch(
         defaultWidth: UInt,
         defaultHeight: UInt,
-        canvasOperations: Map<String, CanvasOp>,
+        canvasOperations: Map<String, ImageGenEntry>,
         imageLoader: ImageLoader
     ) = coroutineScope {
         dependencyLock.withLock {
-            for ((path, op) in canvasOperations) {
+            for ((path, e) in canvasOperations) {
                 val ctx = CanvasOp.Context(imageLoader, DependencyHandle(this@CanvasOpDispatcher, path))
-                ops[path] = async {
+                ops[path] = Entry(async {
                     try {
-                        op.run(ctx, Dimension.of(defaultWidth), Dimension.of(defaultHeight))
+                        e.operation.run(ctx, Dimension.of(defaultWidth), Dimension.of(defaultHeight))
                     } catch (ex: Exception) {
                         fail("Unexpected exception: $ex")
                     }
-                }
+                }, e.optimizationType)
             }
         }
     }
@@ -51,7 +54,7 @@ class CanvasOpDispatcher {
             e.add(dependency)
             op
         }
-        return op.await().fold({ Result.success(it) }) { fail("One or more dependency failed") }
+        return op.canvasOp.await().fold({ Result.success(it) }) { fail("One or more dependency failed") }
     }
 
     private fun checkCycles(entry: String, dependency: String): Boolean {
@@ -62,15 +65,20 @@ class CanvasOpDispatcher {
     class DependencyHandle(
         private val dispatcher: CanvasOpDispatcher,
         private val entry: String
-    ) {
-        suspend fun dependOn(entry: String) = this.dispatcher.addDependency(this.entry, entry)
+    ) : CanvasOp.DependencyHandle {
+        override suspend fun dependOn(entry: String) = this.dispatcher.addDependency(this.entry, entry)
     }
+
+    data class Entry(
+        val canvasOp: Deferred<Result<Canvas>>,
+        val optimizationType: OptimizationType
+    )
 
     companion object {
         suspend fun create(
             defaultWidth: UInt,
             defaultHeight: UInt,
-            canvasOperations: Map<String, CanvasOp>,
+            canvasOperations: Map<String, ImageGenEntry>,
             imageLoader: ImageLoader,
         ): CanvasOpDispatcher = coroutineScope {
             val dispatcher = CanvasOpDispatcher()

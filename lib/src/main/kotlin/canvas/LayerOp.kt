@@ -43,7 +43,7 @@ class LayerOp(
                 }"
             )
         } else if (entries.isEmpty()) {
-            Result.success(SingleColorCanvas(width, height, Color.TRANSPARENT))
+            Result.success(SingleColorCanvas(width, height, Color.Transparent))
         } else {
             val ret = MutableCanvas(width, height)
             var first = true
