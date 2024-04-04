@@ -43,8 +43,8 @@ class TransformOp(
                     }
                     return@transform when (outOfBoundsFill) {
                         OutOfBoundsFill.Clamp -> canvas[
-                            if (canvasX < 0f) 0u else canvas.width - 1u,
-                            if (canvasY < 0f) 0u else canvas.height - 1u
+                            canvasX.toLong().coerceIn(0L, canvas.width.toLong() - 1).toUInt(),
+                            canvasY.toLong().coerceIn(0L, canvas.height.toLong() - 1L).toUInt()
                         ]
                         OutOfBoundsFill.Repeat -> canvas[
                             canvasX.wrap(canvas.width - 1u),
@@ -93,7 +93,8 @@ class TransformOp(
             ret
         }
 
-    override fun toString() = "TransformOp(target=$target, width=$width, height=$height, transform=$transform)"
+    override fun toString() =
+        "TransformOp(target=$target, width=$width, height=$height, transform=$transform, outOfBoundsFill=$outOfBoundsFill)"
 }
 
 sealed interface OutOfBoundsFill {
