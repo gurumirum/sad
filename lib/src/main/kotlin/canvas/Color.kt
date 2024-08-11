@@ -52,7 +52,7 @@ value class Color(val argb: Int) {
     companion object {
         val Transparent = Color(0, 0, 0, 0)
         val Black = Color(0, 0, 0)
-        val White = Color(1, 1, 1)
+        val White = Color(255, 255, 255)
 
         private val regex = Regex("#?([0-9a-fA-F]{1,8})")
 
