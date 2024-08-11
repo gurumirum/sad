@@ -54,8 +54,8 @@ class ConfigScriptRoot(
         equation = equation,
         srcColor = srcBlend,
         dstColor = dstBlend,
-        srcAlpha = srcBlend,
-        dstAlpha = dstBlend,
+        srcAlpha = BlendFunc.One,
+        dstAlpha = BlendFunc.One,
         width = width,
         height = height,
     )
@@ -86,8 +86,8 @@ class ConfigScriptRoot(
         equation = equation,
         srcColor = srcBlend,
         dstColor = dstBlend,
-        srcAlpha = srcBlend,
-        dstAlpha = dstBlend,
+        srcAlpha = BlendFunc.One,
+        dstAlpha = BlendFunc.One,
         width = width,
         height = height,
         builder = builder
