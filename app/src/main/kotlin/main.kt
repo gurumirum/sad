@@ -75,7 +75,7 @@ class Main : CliktCommand(
             ).operations.mapValues { (path, entry) ->
                 async {
                     entry.canvasOp.await().fold({ canvas ->
-                        val hash = lazy { canvas.pixelHash() }
+                        val hash = lazy { canvas.pixelHash(entry.optimizationType.metadata()) }
                         if (!isChanged(path, hash, cache)) {
                             tracker.updateStatus(path, OpTracker.Stage.SKIPPED)
                             opsFinished++
