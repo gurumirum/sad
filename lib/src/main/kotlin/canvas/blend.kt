@@ -1,4 +1,4 @@
-package cnedclub.sad.canvas
+package gurumirum.sad.canvas
 
 import kotlin.math.max
 import kotlin.math.min

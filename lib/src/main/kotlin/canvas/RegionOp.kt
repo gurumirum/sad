@@ -1,4 +1,4 @@
-package cnedclub.sad.canvas
+package gurumirum.sad.canvas
 
 class RegionOp(
     private val source: CanvasOp,

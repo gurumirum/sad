@@ -1,4 +1,4 @@
-package cnedclub.sad.canvas
+package gurumirum.sad.canvas
 
 @JvmInline
 value class Dimension private constructor(

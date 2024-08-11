@@ -21,6 +21,6 @@ kotlin {
 }
 
 application {
-    mainClass = "cnedclub.sad.app.MainKt"
+    mainClass = "gurumirum.sad.app.MainKt"
     executableDir = "run"
 }

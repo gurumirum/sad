@@ -1,4 +1,4 @@
-package cnedclub.sad.script
+package gurumirum.sad.script
 
 enum class OptimizationType {
     DefaultOptimization,

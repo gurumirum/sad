@@ -1,4 +1,4 @@
-package cnedclub.sad.canvas
+package gurumirum.sad.canvas
 
 fun <T> fail(message: String): Result<T> = Result.failure(CanvasOpException(message))
 

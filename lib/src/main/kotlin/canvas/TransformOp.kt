@@ -1,4 +1,4 @@
-package cnedclub.sad.canvas
+package gurumirum.sad.canvas
 
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind

@@ -1,6 +1,6 @@
-package cnedclub.sad.script
+package gurumirum.sad.script
 
-import cnedclub.sad.canvas.CanvasOp
+import gurumirum.sad.canvas.CanvasOp
 
 data class ImageGenEntry(
     val operation: CanvasOp,

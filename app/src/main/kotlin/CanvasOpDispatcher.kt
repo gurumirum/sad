@@ -1,12 +1,12 @@
-package cnedclub.sad.app
+package gurumirum.sad.app
 
-import cnedclub.sad.ImageLoader
-import cnedclub.sad.canvas.Canvas
-import cnedclub.sad.canvas.CanvasOp
-import cnedclub.sad.canvas.Dimension
-import cnedclub.sad.canvas.fail
-import cnedclub.sad.script.ImageGenEntry
-import cnedclub.sad.script.OptimizationType
+import gurumirum.sad.ImageLoader
+import gurumirum.sad.canvas.Canvas
+import gurumirum.sad.canvas.CanvasOp
+import gurumirum.sad.canvas.Dimension
+import gurumirum.sad.canvas.fail
+import gurumirum.sad.script.ImageGenEntry
+import gurumirum.sad.script.OptimizationType
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope

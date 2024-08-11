@@ -1,9 +1,9 @@
-package cnedclub.sad.app
+package gurumirum.sad.app
 
-import cnedclub.sad.script.ConfigScript
-import cnedclub.sad.script.ConfigScriptEvalConfig
-import cnedclub.sad.script.ConfigScriptRoot
-import cnedclub.sad.script.ImageGenEntry
+import gurumirum.sad.script.ConfigScript
+import gurumirum.sad.script.ConfigScriptEvalConfig
+import gurumirum.sad.script.ConfigScriptRoot
+import gurumirum.sad.script.ImageGenEntry
 import kotlin.script.experimental.api.ScriptDiagnostic
 import kotlin.script.experimental.api.SourceCode
 import kotlin.script.experimental.jvm.util.isError

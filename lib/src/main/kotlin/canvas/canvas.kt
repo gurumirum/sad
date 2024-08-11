@@ -1,6 +1,6 @@
-package cnedclub.sad.canvas
+package gurumirum.sad.canvas
 
-import cnedclub.sad.Hash
+import gurumirum.sad.Hash
 import java.awt.image.BufferedImage
 
 interface Canvas {

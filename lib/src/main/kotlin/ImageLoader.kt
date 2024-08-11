@@ -1,7 +1,7 @@
-package cnedclub.sad
+package gurumirum.sad
 
-import cnedclub.sad.canvas.Canvas
-import cnedclub.sad.canvas.toCanvas
+import gurumirum.sad.canvas.Canvas
+import gurumirum.sad.canvas.toCanvas
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException

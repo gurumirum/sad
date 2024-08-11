@@ -1,8 +1,8 @@
-package cnedclub.sad.app
+package gurumirum.sad.app
 
-import cnedclub.sad.Hash
-import cnedclub.sad.ImageLoader
-import cnedclub.sad.VERSION
+import gurumirum.sad.Hash
+import gurumirum.sad.ImageLoader
+import gurumirum.sad.VERSION
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.parameters.options.flag

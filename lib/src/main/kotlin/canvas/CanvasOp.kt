@@ -1,6 +1,6 @@
-package cnedclub.sad.canvas
+package gurumirum.sad.canvas
 
-import cnedclub.sad.ImageLoader
+import gurumirum.sad.ImageLoader
 
 interface CanvasOp {
     suspend fun run(

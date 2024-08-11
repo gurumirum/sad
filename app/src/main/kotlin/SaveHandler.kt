@@ -1,8 +1,8 @@
-package cnedclub.sad.app
+package gurumirum.sad.app
 
-import cnedclub.sad.Hash
-import cnedclub.sad.canvas.Canvas
-import cnedclub.sad.script.OptimizationType
+import gurumirum.sad.Hash
+import gurumirum.sad.canvas.Canvas
+import gurumirum.sad.script.OptimizationType
 import com.googlecode.pngtastic.core.PngImage
 import com.googlecode.pngtastic.core.PngOptimizer
 import kotlinx.coroutines.Deferred

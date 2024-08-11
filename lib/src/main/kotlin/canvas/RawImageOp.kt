@@ -1,4 +1,4 @@
-package cnedclub.sad.canvas
+package gurumirum.sad.canvas
 
 class RawImageOp(val path: String) : CanvasOp {
     override suspend fun run(

@@ -1,6 +1,6 @@
-package cnedclub.sad.script
+package gurumirum.sad.script
 
-import cnedclub.sad.canvas.*
+import gurumirum.sad.canvas.*
 import java.util.*
 
 @Suppress("unused", "MemberVisibilityCanBePrivate")

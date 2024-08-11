@@ -1,4 +1,4 @@
-package cnedclub.sad.app
+package gurumirum.sad.app
 
 import com.github.ajalt.mordant.animation.Animation
 import com.github.ajalt.mordant.animation.animation

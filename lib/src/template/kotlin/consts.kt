@@ -1,4 +1,4 @@
 // auto-generated, do not modify
-package cnedclub.sad
+package gurumirum.sad
 
 const val VERSION = "$version"

@@ -1,5 +1,5 @@
 
-group = "cnedclub.sad"
+group = "gurumirum.sad"
 version = "0.1.0"
 
 repositories {

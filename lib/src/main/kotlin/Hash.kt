@@ -1,4 +1,4 @@
-package cnedclub.sad
+package gurumirum.sad
 
 import java.math.BigInteger
 import java.security.MessageDigest

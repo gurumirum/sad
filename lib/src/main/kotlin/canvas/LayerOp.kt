@@ -1,4 +1,4 @@
-package cnedclub.sad.canvas
+package gurumirum.sad.canvas
 
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
