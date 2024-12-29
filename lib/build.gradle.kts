@@ -1,10 +1,11 @@
 plugins {
-    kotlin("jvm") version "1.9.22"
+    kotlin("jvm")
     id("myproject.java-conventions")
 }
 
 dependencies {
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1-Beta")
+    val kotlin_coroutines_version: String by project
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutines_version")
 }
 
 kotlin {

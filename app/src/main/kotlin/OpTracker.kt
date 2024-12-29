@@ -11,10 +11,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.time.TimeSource
 
 private const val UI_UPDATE_RATE: Long = 5000
 
-class OpTracker(entries: Set<String>) {
+class OpTracker(entries: Set<String>, private val startTime: TimeSource.Monotonic.ValueTimeMark) {
     private val entryToStage = entries.associateWith { State() }.toSortedMap()
     private val genericReports: MutableList<Report> = Collections.synchronizedList(mutableListOf())
 
@@ -33,7 +34,7 @@ class OpTracker(entries: Set<String>) {
         }
     }
 
-    suspend fun startUpdate(scope: CoroutineScope, terminal: Terminal): Updater {
+    fun startUpdate(scope: CoroutineScope, terminal: Terminal): Updater {
         val tableWidget = terminal.animation<Unit> {
             table {
                 cellBorders = Borders.NONE
@@ -44,8 +45,20 @@ class OpTracker(entries: Set<String>) {
                 }
                 body {
                     for ((k, v) in entryToStage) {
+                        if (v.stage.finished) continue
                         row(k, v.stage)
                     }
+                }
+                footer {
+                    cellBorders = Borders.TOP
+
+                    var finished = 0
+
+                    for (v in entryToStage.values) {
+                        if (v.stage.finished) finished++
+                    }
+
+                    row(startTime.elapsedNow(), "$finished / ${entryToStage.size}")
                 }
             }
         }
@@ -108,14 +121,15 @@ class OpTracker(entries: Set<String>) {
 
     class Report(val message: String, val error: Boolean)
 
-    enum class Stage {
+    enum class Stage(val finished: Boolean = false) {
         PROCESSING,
-        PROCESSING_FAILED,
+        PROCESSING_FAILED(true),
+        COMPRESSING_QUEUED,
         COMPRESSING,
-        COMPRESSING_FAILED,
+        COMPRESSING_FAILED(true),
         SAVING,
-        SAVING_FAILED,
-        SKIPPED,
-        FINISHED
+        SAVING_FAILED(true),
+        SKIPPED(true),
+        FINISHED(true)
     }
 }

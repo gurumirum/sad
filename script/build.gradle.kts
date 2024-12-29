@@ -1,12 +1,14 @@
 plugins {
-    kotlin("jvm") version "1.9.22"
+    kotlin("jvm")
     id("myproject.java-conventions")
 }
 
 dependencies {
+    val kotlin_scripting_version: String by project
+
     implementation(project(":lib"))
 
-    implementation("org.jetbrains.kotlin:kotlin-scripting-common")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-dependencies")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-common:$kotlin_scripting_version")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:$kotlin_scripting_version")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host:$kotlin_scripting_version")
 }

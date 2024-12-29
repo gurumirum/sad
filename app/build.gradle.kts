@@ -1,19 +1,23 @@
 plugins {
-    kotlin("jvm") version "1.9.22"
+    kotlin("jvm")
     id("myproject.java-conventions")
     application
 }
 
 dependencies {
+    val clikt_version: String by project
+    val pngtastic_version: String by project
+    val kotlin_scripting_version: String by project
+
     implementation(project(":lib"))
     implementation(project(":script"))
 
-    implementation("com.github.ajalt.clikt:clikt:4.3.0")
-    implementation("com.github.depsypher:pngtastic:1.7")
+    implementation("com.github.ajalt.clikt:clikt:$clikt_version")
+    implementation("com.github.depsypher:pngtastic:$pngtastic_version")
 
-    implementation("org.jetbrains.kotlin:kotlin-scripting-common")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-common:$kotlin_scripting_version")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:$kotlin_scripting_version")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host:$kotlin_scripting_version")
 }
 
 kotlin {

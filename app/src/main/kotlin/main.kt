@@ -1,14 +1,17 @@
 package gurumirum.sad.app
 
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.context
+import com.github.ajalt.clikt.core.main
+import com.github.ajalt.clikt.core.terminal
+import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.types.int
+import com.github.ajalt.clikt.parameters.types.path
+import com.github.ajalt.mordant.terminal.Terminal
 import gurumirum.sad.Hash
 import gurumirum.sad.ImageLoader
 import gurumirum.sad.VERSION
-import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.core.context
-import com.github.ajalt.clikt.parameters.options.flag
-import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.types.path
-import com.github.ajalt.mordant.terminal.Terminal
 import kotlinx.coroutines.*
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
@@ -16,27 +19,33 @@ import kotlin.io.path.Path
 import kotlin.io.path.bufferedReader
 import kotlin.script.experimental.host.toScriptSource
 import kotlin.system.exitProcess
-import kotlin.time.measureTime
+import kotlin.time.TimeSource.Monotonic.markNow
 
 fun main(args: Array<String>) = Main().context {
     terminal = Terminal(interactive = true)
 }.main(args)
 
-class Main : CliktCommand(
-    help = "idk man"
-) {
+class Main : CliktCommand() {
     private val input: Path? by option().path(mustExist = true, canBeFile = false, mustBeReadable = true)
     private val output: Path? by option().path(canBeFile = false)
     private val config: Path? by option().path(mustExist = true, canBeDir = false, mustBeReadable = true)
     private val cache: Path? by option().path(mustExist = false, canBeDir = false)
     private val ignoreCache: Boolean by option("--ignore-cache").flag("--use-cache", default = false)
     private val noOutputCache: Boolean by option("--no-output-cache").flag("--output-cache", default = false)
+    private val maxCompressingParallel: Int? by option("--max-compressing-parallel").int()
 
     override fun run(): Unit = runBlocking {
+        val startTime = markNow()
+
         val inputPath = input ?: Path("")
         val outputPath = output ?: inputPath.resolve("out")
         val configPath = config ?: inputPath.resolve("config.sad.kts")
         val cachePath = cache ?: outputPath.resolve(".cache")
+
+        if (maxCompressingParallel?.let { it <= 0 } == true) {
+            echo("Invalid max compressing parallel value", err = true)
+            exitProcess(1)
+        }
 
         echo("SAD Version $VERSION")
         echo("INPUT: ${inputPath.toAbsolutePath()}")
@@ -59,50 +68,48 @@ class Main : CliktCommand(
 
         echo("Processing ${config.canvasOperations.size} operations")
 
-        val tracker = OpTracker(config.canvasOperations.keys)
+        val tracker = OpTracker(config.canvasOperations.keys, startTime)
         val updater = tracker.startUpdate(this, currentContext.terminal)
-        val saveHandler = SaveHandler(tracker)
+        val saveHandler = SaveHandler(tracker, maxCompressingParallel ?: 4)
 
         var opsFinished = 0
         var filesWritten = 0
 
-        val time = measureTime {
-            val ops: Map<String, Deferred<Result<Lazy<Hash>>>> = CanvasOpDispatcher.create(
-                config.defaultWidth, config.defaultHeight, config.canvasOperations,
-                ImageLoader(inputPath) {
-                    tracker.addGenericReport("Failed to load image file: $it", true)
-                }
-            ).operations.mapValues { (path, entry) ->
-                async {
-                    entry.canvasOp.await().fold({ canvas ->
-                        val hash = lazy { canvas.pixelHash(entry.optimizationType.metadata()) }
-                        if (!isChanged(path, hash, cache)) {
-                            tracker.updateStatus(path, OpTracker.Stage.SKIPPED)
-                            opsFinished++
-                            Result.success(hash)
-                        } else if (saveHandler.saveImage(path, canvas, outputPath, entry.optimizationType)) {
-                            tracker.updateStatus(path, OpTracker.Stage.FINISHED)
-                            opsFinished++
-                            filesWritten++
-                            Result.success(hash)
-                        } else {
-                            Result.failure(RuntimeException("Failed to save"))
-                        }
-                    }, {
-                        tracker.updateStatus(path, OpTracker.Stage.PROCESSING_FAILED)
-                        tracker.addReport(path, "Image processing failed: $it", true)
-                        Result.failure(it)
-                    })
-                }
-            }.toMap()
+        val ops: Map<String, Deferred<Result<Lazy<Hash>>>> = CanvasOpDispatcher.create(
+            config.defaultWidth, config.defaultHeight, config.canvasOperations,
+            ImageLoader(inputPath) {
+                tracker.addGenericReport("Failed to load image file: $it", true)
+            }
+        ).operations.mapValues { (path, entry) ->
+            async {
+                entry.canvasOp.await().fold({ canvas ->
+                    val hash = lazy { canvas.pixelHash(entry.optimizationType.metadata()) }
+                    if (!isChanged(path, hash, cache)) {
+                        tracker.updateStatus(path, OpTracker.Stage.SKIPPED)
+                        opsFinished++
+                        Result.success(hash)
+                    } else if (saveHandler.saveImage(path, canvas, outputPath, entry.optimizationType)) {
+                        tracker.updateStatus(path, OpTracker.Stage.FINISHED)
+                        opsFinished++
+                        filesWritten++
+                        Result.success(hash)
+                    } else {
+                        Result.failure(RuntimeException("Failed to save"))
+                    }
+                }, {
+                    tracker.updateStatus(path, OpTracker.Stage.PROCESSING_FAILED)
+                    tracker.addReport(path, "Image processing failed: $it", true)
+                    Result.failure(it)
+                })
+            }
+        }.toMap()
 
-            saveHandler.updateCache(cache.await(), ops, cachePath, outputPath, noOutputCache)
-        }
+        saveHandler.updateCache(cache.await(), ops, cachePath, outputPath, noOutputCache)
 
         updater.stop()
         tracker.printReports(currentContext.terminal)
 
-        echo("\n\n${opsFinished} operation(s) finished (${filesWritten} file(s) written) in $time")
+        echo("\n\n${opsFinished} operation(s) finished (${filesWritten} file(s) written) in ${startTime.elapsedNow()}")
         exitProcess(0)
     }
 

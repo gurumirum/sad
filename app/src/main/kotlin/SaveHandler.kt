@@ -5,33 +5,21 @@ import gurumirum.sad.canvas.Canvas
 import gurumirum.sad.script.OptimizationType
 import com.googlecode.pngtastic.core.PngImage
 import com.googlecode.pngtastic.core.PngOptimizer
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import java.io.BufferedOutputStream
 import java.io.ByteArrayOutputStream
 import java.io.Closeable
 import java.io.IOException
 import java.nio.file.Path
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.ThreadPoolExecutor
-import java.util.concurrent.TimeUnit
 import javax.imageio.ImageIO
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.createParentDirectories
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.outputStream
 
-// size of zopfli png optimizers are motherfucking beasts, so I can't just spam them
-private const val MAX_PARALLEL = 4
-
-class SaveHandler(private val tracker: OpTracker) : Closeable {
-    private val optimizerContext = ThreadPoolExecutor(
-        0, MAX_PARALLEL,
-        60L, TimeUnit.SECONDS,
-        LinkedBlockingQueue()
-    ).asCoroutineDispatcher()
+class SaveHandler(private val tracker: OpTracker, maxCompressingParallel: Int) : Closeable {
+    @OptIn(DelicateCoroutinesApi::class)
+    private val optimizerContext = newFixedThreadPoolContext(maxCompressingParallel, "Compressing parallel thread pool")
 
     suspend fun saveImage(path: String, canvas: Canvas, outputPath: Path, optimizationType: OptimizationType): Boolean =
         when (optimizationType) {
@@ -43,10 +31,11 @@ class SaveHandler(private val tracker: OpTracker) : Closeable {
         }
 
     private suspend fun optimizeAndSave(canvas: Canvas, zopfli: Boolean, path: String, outputPath: Path): Boolean {
-        tracker.updateStatus(path, OpTracker.Stage.COMPRESSING)
+        tracker.updateStatus(path, OpTracker.Stage.COMPRESSING_QUEUED)
         return withContext(optimizerContext) {
             try {
                 val optimizer = (if (zopfli) zopfliOptimizerThreadLocal else defaultOptimizerThreadLocal).get()
+                tracker.updateStatus(path, OpTracker.Stage.COMPRESSING)
                 Result.success(optimizer.optimize(PngImage(ByteArrayOutputStream().also {
                     ImageIO.write(canvas.toBufferedImage(), "png", it)
                 }.toByteArray())))
