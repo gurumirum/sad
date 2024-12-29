@@ -1,9 +1,6 @@
 package gurumirum.sad.app
 
-import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.core.context
-import com.github.ajalt.clikt.core.main
-import com.github.ajalt.clikt.core.terminal
+import com.github.ajalt.clikt.core.*
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
@@ -15,24 +12,44 @@ import gurumirum.sad.VERSION
 import kotlinx.coroutines.*
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
-import kotlin.io.path.Path
-import kotlin.io.path.bufferedReader
+import java.nio.file.StandardOpenOption
+import kotlin.io.path.*
 import kotlin.script.experimental.host.toScriptSource
 import kotlin.system.exitProcess
 import kotlin.time.TimeSource.Monotonic.markNow
 
-fun main(args: Array<String>) = Main().context {
+fun main(args: Array<String>) = NoOpCliktCommand("sad").context {
     terminal = Terminal(interactive = true)
-}.main(args)
+}.subcommands(Generate(), Init()).main(args)
 
-class Main : CliktCommand() {
-    private val input: Path? by option().path(mustExist = true, canBeFile = false, mustBeReadable = true)
-    private val output: Path? by option().path(canBeFile = false)
-    private val config: Path? by option().path(mustExist = true, canBeDir = false, mustBeReadable = true)
-    private val cache: Path? by option().path(mustExist = false, canBeDir = false)
-    private val ignoreCache: Boolean by option("--ignore-cache").flag("--use-cache", default = false)
-    private val noOutputCache: Boolean by option("--no-output-cache").flag("--output-cache", default = false)
+class Generate : CliktCommand() {
+    private val input: Path? by option(
+        help = "Base directory for all other files and directories; all individual paths can be configured via parameters"
+    ).path(mustExist = true, canBeFile = false, mustBeReadable = true)
+
+    private val output: Path? by option(
+        help = "Base directory for cache file and generated image files"
+    ).path(canBeFile = false)
+
+    private val config: Path? by option(
+        help = "Location of .sad.kts file"
+    ).path(mustExist = true, canBeDir = false, mustBeReadable = true)
+
+    private val cache: Path? by option(
+        help = "Location of cache file"
+    ).path(mustExist = false, canBeDir = false)
+
+    private val ignoreCache: Boolean by option(
+        "--ignore-cache",
+        help = "Whether to ignore cache and re-generate all outputs again"
+    ).flag("--use-cache", default = false)
+    private val noOutputCache: Boolean by option(
+        "--no-output-cache",
+        help = "Whether to skip updating cache file"
+    ).flag("--output-cache", default = false)
     private val maxCompressingParallel: Int? by option("--max-compressing-parallel").int()
+
+    override fun help(context: Context): String = "Generate images with given configuration data and input files"
 
     override fun run(): Unit = runBlocking {
         val startTime = markNow()
@@ -120,7 +137,7 @@ class Main : CliktCommand() {
             echo("Cannot locate config file at '${configPath.toAbsolutePath()}'.")
             return null
         } catch (ex: Exception) {
-            echo("Cannot load config file due to an exception: $ex")
+            echo("Cannot load config file due to an exception: $ex", err = true)
             return null
         }
     }
@@ -141,12 +158,38 @@ class Main : CliktCommand() {
                 map
             }
         } catch (ignored: NoSuchFileException) {
-            echo("Cannot locate .cache file.")
+            echo("Cannot locate .cache file")
             emptyMap()
         }
     }
 
     companion object {
         private val cachePattern = Regex("([0-9a-f]{64}) (.+)")
+    }
+}
+
+class Init : CliktCommand() {
+    private val input: Path? by option().path(mustExist = true, canBeFile = false, mustBeReadable = true)
+    private val config: Path? by option().path(mustExist = true, canBeDir = false, mustBeReadable = true)
+    private val force: Boolean by option("--force", "-f").flag(default = false)
+
+    override fun help(context: Context): String = "Create sample .sad.kts config file"
+
+    override fun run() {
+        val inputPath = input ?: Path("")
+        val configPath = config ?: inputPath.resolve("config.sad.kts")
+
+        if (!force && configPath.isRegularFile()) {
+            echo("Config file already exists, use --force to", err = true)
+            exitProcess(1)
+        } else {
+            try {
+                configPath.writeText(DEFAULT_CONFIG, options = arrayOf(StandardOpenOption.CREATE))
+            } catch (ex: Exception) {
+                echo("Cannot write config file due to an exception: $ex", err = true)
+                exitProcess(1)
+            }
+            exitProcess(0)
+        }
     }
 }

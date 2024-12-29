@@ -141,7 +141,7 @@ class ConfigScriptRoot(
         transform: MutableTransform.() -> Unit
     ) = TransformOp(target, width.dim(), height.dim(), Transform.identity().also(transform), outOfBoundsFill)
 
-    fun rgb(rgb: Int) = Color((rgb.toLong() or 0xFF000000).toInt())
+    fun rgb(rgb: Int) = Color.fromRgb(rgb)
     fun rgb(r: Int, g: Int, b: Int) = Color(r, g, b)
     fun argb(argb: Long) = Color(argb.toInt())
     fun argb(a: Int, r: Int, g: Int, b: Int) = Color(a, r, g, b)
