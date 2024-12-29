@@ -1,6 +1,8 @@
 
+val sad_version: String by project
+
 group = "gurumirum.sad"
-version = "0.1.0"
+version = sad_version
 
 repositories {
     mavenCentral()
