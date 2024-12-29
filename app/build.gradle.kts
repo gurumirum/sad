@@ -28,4 +28,5 @@ application {
     mainClass = "gurumirum.sad.app.MainKt"
     executableDir = "run"
     tasks.run.get().workingDir = File("run").apply { mkdir() }
+    applicationName = "sad"
 }

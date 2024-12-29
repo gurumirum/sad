@@ -3,6 +3,7 @@ package gurumirum.sad.app
 import com.github.ajalt.clikt.core.*
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.path
 import com.github.ajalt.mordant.terminal.Terminal
@@ -13,7 +14,10 @@ import kotlinx.coroutines.*
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
-import kotlin.io.path.*
+import kotlin.io.path.Path
+import kotlin.io.path.bufferedReader
+import kotlin.io.path.isRegularFile
+import kotlin.io.path.writeText
 import kotlin.script.experimental.host.toScriptSource
 import kotlin.system.exitProcess
 import kotlin.time.TimeSource.Monotonic.markNow
@@ -47,7 +51,12 @@ class Generate : CliktCommand() {
         "--no-output-cache",
         help = "Whether to skip updating cache file"
     ).flag("--output-cache", default = false)
-    private val maxCompressingParallel: Int? by option("--max-compressing-parallel").int()
+    private val maxCompressingParallel: Int? by option(
+        "--max-compressing-parallel",
+        help = "Maximum number of process usable for image compression, default is 4"
+    ).int().validate {
+        require(it > 0) { "max-compressing-parallel must be positive" }
+    }
 
     override fun help(context: Context): String = "Generate images with given configuration data and input files"
 
@@ -58,11 +67,6 @@ class Generate : CliktCommand() {
         val outputPath = output ?: inputPath.resolve("out")
         val configPath = config ?: inputPath.resolve("config.sad.kts")
         val cachePath = cache ?: outputPath.resolve(".cache")
-
-        if (maxCompressingParallel?.let { it <= 0 } == true) {
-            echo("Invalid max compressing parallel value", err = true)
-            exitProcess(1)
-        }
 
         echo("SAD Version $VERSION")
         echo("INPUT: ${inputPath.toAbsolutePath()}")
