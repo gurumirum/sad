@@ -8,7 +8,8 @@ class LayerOp(
     private val entries: List<Entry>,
     private val width: Dimension,
     private val height: Dimension,
-    private val equation: BlendEquation,
+    private val colorEquation: BlendEquation,
+    private val alphaEquation: BlendEquation,
     private val srcColor: BlendFunc,
     private val dstColor: BlendFunc,
     private val srcAlpha: BlendFunc,
@@ -55,7 +56,7 @@ class LayerOp(
                     val src = c[x0.toUInt(), y0.toUInt()]
                     ret[x, y] = if (first) src else blend(
                         src, ret[x, y],
-                        equation, srcColor, dstColor, srcAlpha, dstAlpha
+                        colorEquation, alphaEquation, srcColor, dstColor, srcAlpha, dstAlpha
                     )
                 }
                 if (first) first = false
@@ -65,7 +66,7 @@ class LayerOp(
     }
 
     override fun toString() =
-        "LayerOp(entries=$entries, width=$width, height=$height, equation=$equation, srcColor=$srcColor, dstColor=$dstColor, srcAlpha=$srcAlpha, dstAlpha=$dstAlpha)"
+        "LayerOp(entries=$entries, width=$width, height=$height, colorEquation=$colorEquation, alphaEquation=$alphaEquation, srcColor=$srcColor, dstColor=$dstColor, srcAlpha=$srcAlpha, dstAlpha=$dstAlpha)"
 
     data class Entry(
         val op: CanvasOp,

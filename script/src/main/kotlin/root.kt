@@ -45,7 +45,7 @@ class ConfigScriptRoot(
     fun layer(
         vararg entries: CanvasOp,
         equation: BlendEquation = BlendEquation.Add,
-        srcBlend: BlendFunc = BlendFunc.SrcAlpha,
+        srcBlend: BlendFunc = BlendFunc.One,
         dstBlend: BlendFunc = BlendFunc.OneMinusSrcAlpha,
         width: Int? = null,
         height: Int? = null
@@ -55,7 +55,7 @@ class ConfigScriptRoot(
         srcColor = srcBlend,
         dstColor = dstBlend,
         srcAlpha = BlendFunc.One,
-        dstAlpha = BlendFunc.One,
+        dstAlpha = BlendFunc.OneMinusSrcAlpha,
         width = width,
         height = height,
     )
@@ -69,15 +69,37 @@ class ConfigScriptRoot(
         dstAlpha: BlendFunc,
         width: Int? = null,
         height: Int? = null
+    ) = layer(
+        entries = entries,
+        colorEquation = equation,
+        alphaEquation = equation,
+        srcColor = srcColor,
+        dstColor = dstColor,
+        srcAlpha = srcAlpha,
+        dstAlpha = dstAlpha,
+        width = width,
+        height = height
+    )
+
+    fun layer(
+        vararg entries: CanvasOp,
+        colorEquation: BlendEquation,
+        alphaEquation: BlendEquation,
+        srcColor: BlendFunc,
+        dstColor: BlendFunc,
+        srcAlpha: BlendFunc,
+        dstAlpha: BlendFunc,
+        width: Int? = null,
+        height: Int? = null
     ) = LayerOp(
         entries.map { LayerOp.Entry(it, 0, 0) },
         width.dim(), height.dim(),
-        equation, srcColor, dstColor, srcAlpha, dstAlpha
+        colorEquation, alphaEquation, srcColor, dstColor, srcAlpha, dstAlpha
     )
 
     inline fun layer(
         equation: BlendEquation = BlendEquation.Add,
-        srcBlend: BlendFunc = BlendFunc.SrcAlpha,
+        srcBlend: BlendFunc = BlendFunc.One,
         dstBlend: BlendFunc = BlendFunc.OneMinusSrcAlpha,
         width: Int? = null,
         height: Int? = null,
@@ -87,7 +109,7 @@ class ConfigScriptRoot(
         srcColor = srcBlend,
         dstColor = dstBlend,
         srcAlpha = BlendFunc.One,
-        dstAlpha = BlendFunc.One,
+        dstAlpha = BlendFunc.OneMinusSrcAlpha,
         width = width,
         height = height,
         builder = builder
@@ -102,12 +124,34 @@ class ConfigScriptRoot(
         width: Int? = null,
         height: Int? = null,
         builder: LayerBuilder.() -> Unit
+    ) = layer(
+        colorEquation = equation,
+        alphaEquation = equation,
+        srcColor = srcColor,
+        dstColor = dstColor,
+        srcAlpha = srcAlpha,
+        dstAlpha = dstAlpha,
+        width = width,
+        height = height,
+        builder = builder
+    )
+
+    inline fun layer(
+        colorEquation: BlendEquation,
+        alphaEquation: BlendEquation,
+        srcColor: BlendFunc,
+        dstColor: BlendFunc,
+        srcAlpha: BlendFunc,
+        dstAlpha: BlendFunc,
+        width: Int? = null,
+        height: Int? = null,
+        builder: LayerBuilder.() -> Unit
     ) = LayerOp(
         mutableListOf<LayerOp.Entry>().also {
             builder(LayerBuilder(it))
         },
         width.dim(), height.dim(),
-        equation, srcColor, dstColor, srcAlpha, dstAlpha
+        colorEquation, alphaEquation, srcColor, dstColor, srcAlpha, dstAlpha
     )
 
     fun gradientMap(

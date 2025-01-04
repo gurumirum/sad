@@ -10,6 +10,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.TimeSource
 
@@ -25,16 +26,19 @@ class OpTracker(entries: Set<String>, private val startTime: TimeSource.Monotoni
 
     class Updater(
         private val widget: Animation<Unit>,
-        private val updateJob: Job
+        private val updateJob: Job,
+        private val stopFlag: AtomicBoolean
     ) {
         fun stop() {
             updateJob.cancel()
+            stopFlag.set(true)
             widget.update(Unit)
             widget.stop()
         }
     }
 
     fun startUpdate(scope: CoroutineScope, terminal: Terminal): Updater {
+        val stopFlag = AtomicBoolean()
         val tableWidget = terminal.animation<Unit> {
             table {
                 cellBorders = Borders.NONE
@@ -45,7 +49,11 @@ class OpTracker(entries: Set<String>, private val startTime: TimeSource.Monotoni
                 }
                 body {
                     for ((k, v) in entryToStage) {
-                        if (v.stage.finished) continue
+                        if (stopFlag.get()) {
+                            if (v.stage == Stage.SKIPPED) continue
+                        } else {
+                            if (v.stage.finished) continue
+                        }
                         row(k, v.stage)
                     }
                 }
@@ -71,7 +79,7 @@ class OpTracker(entries: Set<String>, private val startTime: TimeSource.Monotoni
                 delay(UI_UPDATE_RATE)
             }
         }
-        return Updater(tableWidget, job)
+        return Updater(tableWidget, job, stopFlag)
     }
 
     fun printReports(terminal: Terminal) {

@@ -47,7 +47,7 @@ value class Color(val argb: Int) {
     ) = Color(a, r, g, b)
 
     @OptIn(ExperimentalStdlibApi::class)
-    override fun toString() = "#" + (if (a == 255) rgb else argb).toHexString(HexFormat.UpperCase)
+    override fun toString() = "#" + argb.toHexString(HexFormat.UpperCase)
 
     companion object {
         val Transparent = Color(0, 0, 0, 0)

@@ -6,16 +6,17 @@ import kotlin.math.min
 fun blend(
     src: Color,
     dst: Color,
-    eq: BlendEquation,
+    colorEquation: BlendEquation,
+    alphaEquation: BlendEquation,
     srcColor: BlendFunc,
     dstColor: BlendFunc,
     srcAlpha: BlendFunc,
     dstAlpha: BlendFunc,
 ): Color = Color(
-    eq.equate(src, dst, srcAlpha, dstAlpha, ColorComponent.A),
-    eq.equate(src, dst, srcColor, dstColor, ColorComponent.R),
-    eq.equate(src, dst, srcColor, dstColor, ColorComponent.G),
-    eq.equate(src, dst, srcColor, dstColor, ColorComponent.B)
+    alphaEquation.equate(src, dst, srcAlpha, dstAlpha, ColorComponent.A),
+    colorEquation.equate(src, dst, srcColor, dstColor, ColorComponent.R),
+    colorEquation.equate(src, dst, srcColor, dstColor, ColorComponent.G),
+    colorEquation.equate(src, dst, srcColor, dstColor, ColorComponent.B)
 )
 
 enum class BlendEquation {
