@@ -30,6 +30,9 @@ class ConfigScriptRoot(
     fun fill(color: Color, width: Int? = null, height: Int? = null) =
         ColorFillOp(color, width.dim(), height.dim())
 
+    fun empty(width: Int? = null, height: Int? = null) =
+        ColorFillOp(Color.Transparent, width.dim(), height.dim())
+
     fun output(path: String) = DependencyOp(path)
 
     fun region(
@@ -184,6 +187,22 @@ class ConfigScriptRoot(
         height: Int? = null,
         transform: MutableTransform.() -> Unit
     ) = TransformOp(target, width.dim(), height.dim(), Transform.identity().also(transform), outOfBoundsFill)
+
+    fun filter(
+        target: CanvasOp,
+        filter: (MutableCanvas) -> Unit
+    ) = CodeFilterOp(target, filter)
+
+    fun pixelFilter(
+        target: CanvasOp,
+        filter: MutableCanvas.(x: UInt, y: UInt) -> Color
+    ) = CodeFilterOp(target) {
+        for (x in 0u until it.width) {
+            for (y in 0u until it.height) {
+                it[x, y] = filter(it, x, y)
+            }
+        }
+    }
 
     fun rgb(rgb: Int) = Color.fromRgb(rgb)
     fun rgb(r: Int, g: Int, b: Int) = Color(r, g, b)
