@@ -5,7 +5,7 @@ import gurumirum.sad.canvas.Canvas
 import gurumirum.sad.canvas.CanvasOp
 import gurumirum.sad.canvas.Dimension
 import gurumirum.sad.canvas.fail
-import gurumirum.sad.script.ImageGenEntry
+import gurumirum.sad.script.ImageGen
 import gurumirum.sad.script.OptimizationType
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
@@ -25,7 +25,7 @@ class CanvasOpDispatcher {
     suspend fun dispatch(
         defaultWidth: UInt,
         defaultHeight: UInt,
-        canvasOperations: Map<String, ImageGenEntry>,
+        canvasOperations: Map<String, ImageGen>,
         imageLoader: ImageLoader
     ) = coroutineScope {
         dependencyLock.withLock {
@@ -33,7 +33,7 @@ class CanvasOpDispatcher {
                 val ctx = CanvasOp.Context(imageLoader, DependencyHandle(this@CanvasOpDispatcher, path))
                 ops[path] = Entry(async {
                     try {
-                        e.operation.run(ctx, Dimension.of(defaultWidth), Dimension.of(defaultHeight))
+                        e.canvasOp.run(ctx, Dimension.of(defaultWidth), Dimension.of(defaultHeight))
                     } catch (ex: Exception) {
                         fail("Unexpected exception: $ex")
                     }
@@ -78,7 +78,7 @@ class CanvasOpDispatcher {
         suspend fun create(
             defaultWidth: UInt,
             defaultHeight: UInt,
-            canvasOperations: Map<String, ImageGenEntry>,
+            canvasOperations: Map<String, ImageGen>,
             imageLoader: ImageLoader,
         ): CanvasOpDispatcher = coroutineScope {
             val dispatcher = CanvasOpDispatcher()

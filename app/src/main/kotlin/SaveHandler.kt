@@ -1,10 +1,9 @@
 package gurumirum.sad.app
 
-import gurumirum.sad.Hash
-import gurumirum.sad.canvas.Canvas
-import gurumirum.sad.script.OptimizationType
 import com.googlecode.pngtastic.core.PngImage
 import com.googlecode.pngtastic.core.PngOptimizer
+import gurumirum.sad.canvas.Canvas
+import gurumirum.sad.script.OptimizationType
 import kotlinx.coroutines.*
 import java.io.BufferedOutputStream
 import java.io.ByteArrayOutputStream
@@ -12,7 +11,6 @@ import java.io.Closeable
 import java.io.IOException
 import java.nio.file.Path
 import javax.imageio.ImageIO
-import kotlin.io.path.bufferedWriter
 import kotlin.io.path.createParentDirectories
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.outputStream
@@ -51,6 +49,9 @@ class SaveHandler(private val tracker: OpTracker, maxCompressingParallel: Int) :
         }
     }
 
+    suspend fun saveText(path: String, text: String, outputPath: Path): Boolean =
+        write(path, outputPath) { it.writer().use { w -> w.write(text) } }
+
     private suspend inline fun write(
         path: String,
         outputPath: Path,
@@ -59,7 +60,7 @@ class SaveHandler(private val tracker: OpTracker, maxCompressingParallel: Int) :
         tracker.updateStatus(path, OpTracker.Stage.SAVING)
         return try {
             withContext(Dispatchers.IO) {
-                outputPath.resolve("$path.png")
+                outputPath.resolve(path)
                     .createParentDirectories()
                     .outputStream().buffered()
                     .use(writer)
@@ -73,8 +74,8 @@ class SaveHandler(private val tracker: OpTracker, maxCompressingParallel: Int) :
     }
 
     suspend fun updateCache(
-        cache: Map<String, Hash>,
-        ops: Map<String, Deferred<Result<Lazy<Hash>>>>,
+        cache: Map<String, OpHash>,
+        ops: Map<String, Deferred<Result<Lazy<OpHash>>>>,
         cachePath: Path,
         outputPath: Path,
         noOutputCache: Boolean
@@ -84,23 +85,15 @@ class SaveHandler(private val tracker: OpTracker, maxCompressingParallel: Int) :
             for ((path, op) in ops) {
                 op.await().onSuccess { filesToDelete.remove(path) }
             }
-        } else cachePath.createParentDirectories().bufferedWriter().use { w ->
-            var nl = false
-            for ((path, op) in ops) {
-                op.await().onSuccess {
-                    if (nl) w.write("\n")
-                    else nl = true
-                    w.write(it.value.toString())
-                    w.write(" ")
-                    w.write(path)
-                    filesToDelete.remove(path)
-                }
+        } else {
+            CacheIO.writeCache(ops, cachePath) {
+                filesToDelete.remove(it)
             }
         }
 
         for (f in filesToDelete) {
             try {
-                outputPath.resolve("$f.png").deleteIfExists()
+                outputPath.resolve(f).deleteIfExists()
             } catch (ex: IOException) {
                 tracker.addGenericReport("Cannot delete outdated output entry $f due to an exception: $ex", true)
             }

@@ -22,7 +22,7 @@ class SingleColorCanvas(
 ) : Canvas {
     override fun get(x: UInt, y: UInt): Color = color
 
-    override fun pixelHash(metadata: ByteArray?) = Hash(createColorArray(), metadata)
+    override fun pixelHash(metadata: ByteArray?) = Hash.of(createColorArray(), metadata)
 
     override fun toBufferedImage() =
         BufferedImage(this.width.toInt(), this.height.toInt(), BufferedImage.TYPE_INT_ARGB).also {
@@ -54,7 +54,7 @@ class MutableCanvas(
         data[(y * width + x).toInt()] = color.argb
     }
 
-    override fun pixelHash(metadata: ByteArray?) = Hash(this.data, metadata)
+    override fun pixelHash(metadata: ByteArray?) = Hash.of(this.data, metadata)
 
     override fun toBufferedImage() =
         BufferedImage(this.width.toInt(), this.height.toInt(), BufferedImage.TYPE_INT_ARGB).also {

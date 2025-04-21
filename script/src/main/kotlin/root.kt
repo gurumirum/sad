@@ -5,7 +5,7 @@ import java.util.*
 
 @Suppress("unused", "MemberVisibilityCanBePrivate")
 class ConfigScriptRoot(
-    private val canvasOperations: MutableMap<String, ImageGenEntry>,
+    private val operations: MutableMap<String, Operation>,
     private val reportHandle: (String, err: Boolean) -> Unit
 ) {
     var defaultWidth: Int? = null
@@ -21,9 +21,24 @@ class ConfigScriptRoot(
 
     var defaultOptimizationType = OptimizationType.DefaultOptimization
 
-    fun generate(path: String, canvasOp: CanvasOp, optimization: OptimizationType = defaultOptimizationType) =
-        if (canvasOperations.putIfAbsent(path, ImageGenEntry(canvasOp, optimization)) == null) DependencyOp(path)
-        else throw IllegalStateException("Entry for location '$path' already exists")
+    fun generate(
+        path: String,
+        canvasOp: CanvasOp,
+        optimization: OptimizationType = this.defaultOptimizationType
+    ): DependencyOp {
+        val p = "$path.png"
+        addOperation(p, ImageGen(canvasOp, optimization))
+        return DependencyOp(p)
+    }
+
+    fun generateText(path: String, text: String) {
+        addOperation(path, TextGen(text))
+    }
+
+    fun addOperation(path: String, op: Operation) {
+        if (this.operations.putIfAbsent(path, op) != null)
+            throw IllegalStateException("Entry for location '$path' already exists")
+    }
 
     fun image(path: String) = RawImageOp(path)
 
@@ -33,7 +48,7 @@ class ConfigScriptRoot(
     fun empty(width: Int? = null, height: Int? = null) =
         ColorFillOp(Color.Transparent, width.dim(), height.dim())
 
-    fun output(path: String) = DependencyOp(path)
+    fun output(path: String) = DependencyOp("$path.png")
 
     fun region(
         source: CanvasOp,

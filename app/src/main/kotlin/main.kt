@@ -10,12 +10,13 @@ import com.github.ajalt.mordant.terminal.Terminal
 import gurumirum.sad.Hash
 import gurumirum.sad.ImageLoader
 import gurumirum.sad.VERSION
+import gurumirum.sad.script.ImageGen
+import gurumirum.sad.script.OperationType
+import gurumirum.sad.script.TextGen
 import kotlinx.coroutines.*
-import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import kotlin.io.path.Path
-import kotlin.io.path.bufferedReader
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.writeText
 import kotlin.script.experimental.host.toScriptSource
@@ -84,27 +85,39 @@ class Generate : CliktCommand() {
             })
         echo("")
 
-        val cache = async { readCache(cachePath) }
+        val cache = async { CacheIO.readCache(this@Generate, cachePath) }
         val config = readConfig(configPath) ?: return@runBlocking
 
-        echo("Processing ${config.canvasOperations.size} operations")
+        echo("Processing ${config.operations.size} operations")
 
-        val tracker = OpTracker(config.canvasOperations.keys, startTime)
+        val tracker = OpTracker(config.operations.keys, startTime)
         val updater = tracker.startUpdate(this, currentContext.terminal)
         val saveHandler = SaveHandler(tracker, maxCompressingParallel ?: 4)
 
         var opsFinished = 0
         var filesWritten = 0
 
-        val ops: Map<String, Deferred<Result<Lazy<Hash>>>> = CanvasOpDispatcher.create(
-            config.defaultWidth, config.defaultHeight, config.canvasOperations,
+        val imageGenOps = mutableMapOf<String, ImageGen>()
+        val textGenOps = mutableMapOf<String, TextGen>()
+
+        for ((k, v) in config.operations) {
+            when (v) {
+                is ImageGen -> imageGenOps[k] = v
+                is TextGen -> textGenOps[k] = v
+            }
+        }
+
+        val ops: Map<String, Deferred<Result<Lazy<OpHash>>>> = CanvasOpDispatcher.create(
+            config.defaultWidth, config.defaultHeight, imageGenOps,
             ImageLoader(inputPath) {
                 tracker.addGenericReport("Failed to load image file: $it", true)
             }
         ).operations.mapValues { (path, entry) ->
             async {
                 entry.canvasOp.await().fold({ canvas ->
-                    val hash = lazy { canvas.pixelHash(entry.optimizationType.metadata()) }
+                    val hash = lazy {
+                        OpHash(OperationType.IMAGE, canvas.pixelHash(entry.optimizationType.metadata()))
+                    }
                     if (!isChanged(path, hash, cache)) {
                         tracker.updateStatus(path, OpTracker.Stage.SKIPPED)
                         opsFinished++
@@ -123,7 +136,25 @@ class Generate : CliktCommand() {
                     Result.failure(it)
                 })
             }
-        }.toMap()
+        } + textGenOps.mapValues { (path, textGen) ->
+            async {
+                val hash = lazy {
+                    OpHash(OperationType.TEXT, Hash.of(textGen.text))
+                }
+                if (!isChanged(path, hash, cache)) {
+                    tracker.updateStatus(path, OpTracker.Stage.SKIPPED)
+                    opsFinished++
+                    Result.success(hash)
+                } else if (saveHandler.saveText(path, textGen.text, outputPath)) {
+                    tracker.updateStatus(path, OpTracker.Stage.FINISHED)
+                    opsFinished++
+                    filesWritten++
+                    Result.success(hash)
+                } else {
+                    Result.failure(RuntimeException("Failed to save"))
+                }
+            }
+        }
 
         saveHandler.updateCache(cache.await(), ops, cachePath, outputPath, noOutputCache)
 
@@ -146,29 +177,14 @@ class Generate : CliktCommand() {
         }
     }
 
-    private suspend fun isChanged(path: String, canvasHash: Lazy<Hash>, cache: Deferred<Map<String, Hash>>): Boolean =
-        ignoreCache || canvasHash.value != cache.await()[path]
-
-    private suspend fun readCache(cachePath: Path): Map<String, Hash> = withContext(Dispatchers.IO) {
-        try {
-            cachePath.bufferedReader().useLines {
-                val map = hashMapOf<String, Hash>()
-                for ((i, line) in it.withIndex()) {
-                    val m = cachePattern.matchEntire(line)
-                    if (m == null) echo("Malformed cache at line ${i + 1} skipped")
-                    else map[m.groupValues[2]] = Hash(m.groupValues[1])
-                }
-                echo("Read ${map.size} cache entries")
-                map
-            }
-        } catch (ignored: NoSuchFileException) {
-            echo("Cannot locate .cache file")
-            emptyMap()
-        }
-    }
-
-    companion object {
-        private val cachePattern = Regex("([0-9a-f]{64}) (.+)")
+    private suspend fun isChanged(
+        path: String,
+        canvasHash: Lazy<OpHash>,
+        cache: Deferred<Map<String, OpHash>>
+    ): Boolean {
+        if (this.ignoreCache) return true
+        val hash = cache.await()[path] ?: return true
+        return canvasHash.value != hash
     }
 }
 
