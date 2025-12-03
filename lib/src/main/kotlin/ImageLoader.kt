@@ -14,7 +14,7 @@ class ImageLoader(
     private val basePath: Path,
     private val errorReporter: (Throwable) -> Unit
 ) {
-    private val cache = ConcurrentHashMap<String, Canvas?>()
+    private val cache = ConcurrentHashMap<String, Canvas>()
 
     suspend fun readFrom(path: String): Canvas? = this.cache.getOrPut(path) {
         try {
@@ -23,7 +23,7 @@ class ImageLoader(
             }
         } catch (err: IOException) {
             this.errorReporter(err)
-            null
+            return null
         }
     }
 }

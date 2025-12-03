@@ -227,14 +227,14 @@ class ConfigScriptRoot(
     fun <T : Any?> echo(t: T): T = t.also { reportHandle("$it", false) }
 }
 
-@Suppress("unused", "MemberVisibilityCanBePrivate")
+@Suppress("unused")
 class LayerBuilder(private val entries: MutableList<LayerOp.Entry>) {
     fun add(op: CanvasOp, xOffset: Int = 0, yOffset: Int = 0) {
         entries += LayerOp.Entry(op, xOffset, yOffset)
     }
 }
 
-@Suppress("unused", "MemberVisibilityCanBePrivate")
+@Suppress("unused")
 class SimpleGradientBuilder(private val elements: SortedMap<Float, Color>) {
     fun add(point: Float, color: Color) {
         if (point in 0.0..1.0) {

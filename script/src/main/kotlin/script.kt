@@ -25,7 +25,7 @@ object ConfigScriptCompilationConfig : ScriptCompilationConfiguration({
     jvm {
         // Extract the whole classpath from context classloader and use it as dependencies
         dependenciesFromCurrentContext(wholeClasspath = true)
-        compilerOptions.append("-jvm-target", "17")
+        compilerOptions.append("-jvm-target", "21")
     }
 }) {
     private fun readResolve(): Any = ConfigScriptCompilationConfig
